@@ -576,7 +576,7 @@ module.exports = async function handler(req, res) {
         health_score: cohort?.health_score || 0,
       }
     });
-
+  }
 
   // ══════════════════════════════════════════════════════════════════════════════
   // COHORT ACTIONS: launch / complete
@@ -778,4 +778,5 @@ module.exports = async function handler(req, res) {
 
   // 404
   return json(res, 404, { error: { code: 'NOT_FOUND', message: `${method} ${pathname} not found` } });
+};
 };
