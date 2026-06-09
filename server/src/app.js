@@ -17,6 +17,8 @@ const analyticsRoutes = require('./routes/analytics');
 const announcementRoutes = require('./routes/announcements');
 const adminRoutes = require('./routes/admin');
 const journeyRoutes = require('./routes/journeys');
+const participantRoutes = require('./routes/participant');
+const orgAdminRoutes = require('./routes/orgAdmin');
 
 const { errorHandler } = require('./middleware/errorHandler');
 
@@ -76,19 +78,13 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/announcements', announcementRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1', journeyRoutes);
+app.use('/api/v1/participant', participantRoutes);
+app.use('/api/v1/org-admin', orgAdminRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.0' }));
 
 // ── Error handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
-
-// Only start the server when run directly (not when imported by Vercel)
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`\n🚀 ELOP API Server running on http://localhost:${PORT}`);
-    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
-  });
-}
 
 module.exports = app;

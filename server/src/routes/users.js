@@ -15,21 +15,33 @@ function generateTempPassword() {
 }
 
 // ── GET /users ───────────────────────────────────────────────────────────────
-router.get('/', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
+    // ORG_ADMIN can only list PARTICIPANT users within their own org
+    const isOrgAdmin = req.user.role === ROLES.ORG_ADMIN;
+    const isPrivileged = [ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN].includes(req.user.role);
+    if (!isPrivileged && !isOrgAdmin) {
+      return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } });
+    }
+
     const { role, org_id, status, search, page = 1, limit = 20 } = req.query;
     let query = supabase.from('users').select('id,role,email,name,display_name,photo_url,designation,department,org_id,status,created_at', { count: 'exact' }).is('deleted_at', null);
 
-    if (role) query = query.eq('role', role);
-    if (org_id) query = query.eq('org_id', org_id);
+    if (isOrgAdmin) {
+      // Restrict to their org's participants only
+      query = query.eq('org_id', req.user.org_id).eq('role', ROLES.PARTICIPANT);
+    } else {
+      if (role) query = query.eq('role', role);
+      if (org_id) query = query.eq('org_id', org_id);
+      // Mini SA org scope
+      if (req.user.role === ROLES.MINI_SUPER_ADMIN) {
+        const scope = req.user.mini_sa_permissions?.org_scope;
+        if (scope && scope !== 'all') query = query.in('org_id', scope);
+      }
+    }
+
     if (status) query = query.eq('status', status);
     if (search) query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
-
-    // Mini SA org scope
-    if (req.user.role === ROLES.MINI_SUPER_ADMIN) {
-      const scope = req.user.mini_sa_permissions?.org_scope;
-      if (scope && scope !== 'all') query = query.in('org_id', scope);
-    }
 
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });

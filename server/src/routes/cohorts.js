@@ -203,4 +203,100 @@ router.get('/:id/audit', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), a
   } catch (err) { next(err); }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT ASSIGNMENTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.get('/:id/assessments', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('assessment_assignments')
+      .select('*,assessments(id,title,description,assessment_type,library_status,sections,timer_minutes,max_attempts)')
+      .eq('cohort_id', id);
+    if (error) throw error;
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/assessments', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { assessment_id, access_open, access_close, mandatory } = req.body;
+    if (!assessment_id) return res.status(400).json({ error: { message: 'assessment_id required' } });
+    const { data: existing } = await supabase.from('assessment_assignments').select('id').eq('cohort_id', id).eq('assessment_id', assessment_id).single();
+    if (existing) return res.status(409).json({ error: { message: 'This assessment is already assigned to this cohort' } });
+    const { data, error } = await supabase.from('assessment_assignments').insert({
+      id: uuidv4(), cohort_id: id, assessment_id,
+      access_open: access_open || null,
+      access_close: access_close || null,
+      mandatory: mandatory ?? true,
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json({ data });
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/assessments/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { assignId } = req.params;
+    const { error } = await supabase.from('assessment_assignments').delete().eq('id', assignId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONTENT ASSIGNMENTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.get('/:id/content', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('content_assignments')
+      .select('*,content_items(id,title,description,content_type,library_status,estimated_minutes,file_url,external_url,tags_competency,tags_industry,tags_level,tags_program_type)')
+      .eq('cohort_id', id)
+      .order('sequence_order', { ascending: true });
+    if (error) throw error;
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/content', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { content_item_id, module_name, sequence_order, is_mandatory, mandatory, visibility_status, release_at, access_until } = req.body;
+    if (!content_item_id) return res.status(400).json({ error: { message: 'content_item_id required' } });
+    const { data: existing } = await supabase.from('content_assignments').select('id').eq('cohort_id', id).eq('content_item_id', content_item_id).single();
+    if (existing) return res.status(409).json({ error: { message: 'This content is already assigned to this cohort' } });
+    // Auto-assign sequence_order if not provided
+    let order = sequence_order;
+    if (order == null) {
+      const { count } = await supabase.from('content_assignments').select('*', { count: 'exact', head: true }).eq('cohort_id', id);
+      order = count || 0;
+    }
+    const { data, error } = await supabase.from('content_assignments').insert({
+      id: uuidv4(), cohort_id: id, content_item_id,
+      module_name: module_name || 'General',
+      sequence_order: order,
+      mandatory: is_mandatory ?? mandatory ?? false,
+      visibility_status: visibility_status || 'published',
+      release_at: release_at || null,
+      access_until: access_until || null,
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json({ data });
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/content/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { assignId } = req.params;
+    const { error } = await supabase.from('content_assignments').delete().eq('id', assignId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

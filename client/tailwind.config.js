@@ -26,8 +26,8 @@ export default {
         },
       },
       fontFamily: {
-        sans:    ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Cal Sans', 'Inter', 'sans-serif'],
+        sans:    ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+        display: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

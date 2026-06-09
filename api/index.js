@@ -141,7 +141,7 @@ module.exports = async function handler(req, res) {
       const refreshToken = crypto.randomBytes(64).toString('hex');
       await sb('POST', '/rest/v1/refresh_tokens', { user_id: user.id, token: refreshToken, expires_at: new Date(Date.now() + 30*24*3600000).toISOString() });
 
-      const accessToken = signJWT({ sub: user.id, role: user.role, org_id: user.org_id || null, exp: Math.floor(Date.now()/1000) + 900 });
+      const accessToken = signJWT({ sub: user.id, role: user.role, org_id: user.org_id || null, exp: Math.floor(Date.now()/1000) + 28800 });
       res.setHeader('Set-Cookie', `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${30*24*3600}; Path=/`);
       return json(res, 200, {
         access_token: accessToken,
@@ -164,7 +164,7 @@ module.exports = async function handler(req, res) {
       await sb('POST', '/rest/v1/refresh_tokens', { user_id: record.user_id, token: newToken, expires_at: new Date(Date.now() + 30*24*3600000).toISOString() });
       res.setHeader('Set-Cookie', `refresh_token=${newToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${30*24*3600}; Path=/`);
       const u = record.users;
-      return json(res, 200, { access_token: signJWT({ sub: u.id, role: u.role, org_id: u.org_id || null, exp: Math.floor(Date.now()/1000) + 900 }) });
+      return json(res, 200, { access_token: signJWT({ sub: u.id, role: u.role, org_id: u.org_id || null, exp: Math.floor(Date.now()/1000) + 28800 }) });
     } catch (err) { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: err.message } }); }
   }
 
@@ -408,16 +408,38 @@ module.exports = async function handler(req, res) {
   if (enrollMatch) {
     const cid = enrollMatch[1];
     if (method === 'GET') {
-      const r = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&select=*,users(id,name,email,role,designation,department,photo_url)&order=enrolled_at.desc`);
+      const r = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&select=*,users!enrollments_participant_id_fkey(id,name,email,role,designation,department,photo_url)&order=enrolled_at.desc`);
       return json(res, 200, { data: r.body || [] });
     }
     if (method === 'POST') {
       const body = await parseBody(req);
       const ids = body.participant_ids || body.user_ids || [];
       if (!ids.length) return json(res, 400, { error: { message: 'participant_ids required' } });
-      const rows = ids.map(pid => ({ id: crypto.randomUUID(), cohort_id: cid, participant_id: pid, enrolled_by: currentUser.sub, enrolled_at: new Date().toISOString(), status: 'active' }));
-      const r = await sb('POST', '/rest/v1/enrollments', rows);
+      // Check which are already actively enrolled
+      const existRes = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&participant_id=in.(${ids.join(',')})&status=eq.active&select=participant_id`);
+      const existingActive = new Set(Array.isArray(existRes.body) ? existRes.body.map(e => e.participant_id) : []);
+      const toProcess = ids.filter(pid => !existingActive.has(pid));
+      if (!toProcess.length) return json(res, 409, { error: { message: 'All selected participants are already enrolled' } });
+      // Upsert — handles re-activating previously withdrawn participants
+      const rows = toProcess.map(pid => ({
+        cohort_id: cid, participant_id: pid,
+        enrolled_by: currentUser.sub, enrolled_at: new Date().toISOString(), status: 'active',
+        withdrawn_at: null, withdrawn_by: null, withdrawn_reason: null,
+      }));
+      const r = await sb('POST', `/rest/v1/enrollments?on_conflict=cohort_id,participant_id`, rows,
+        { Prefer: 'return=representation,resolution=merge-duplicates' });
+      if (r.status >= 400) return json(res, r.status, { error: { message: JSON.stringify(r.body) } });
       return json(res, 201, { data: r.body || [] });
+    }
+  }
+
+  // DELETE /cohorts/:id/enrollments/:enrollId
+  const enrollItemMatch = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/enrollments\/([^/]+)$/);
+  if (enrollItemMatch) {
+    const [, cid, enrollId] = enrollItemMatch;
+    if (method === 'DELETE') {
+      await sb('DELETE', `/rest/v1/enrollments?id=eq.${enrollId}&cohort_id=eq.${cid}`);
+      return json(res, 200, { success: true });
     }
   }
 
@@ -485,6 +507,95 @@ module.exports = async function handler(req, res) {
       const r = await sb('POST', '/rest/v1/content_items', { id: crypto.randomUUID(), ...body, version: 1, library_status: 'published', created_by: currentUser.sub });
       if (r.status >= 400) return json(res, r.status, { error: { message: JSON.stringify(r.body) } });
       return json(res, 201, { data: (r.body || [])[0] || r.body });
+    }
+  }
+
+  // Content item — individual CRUD
+  const ciMatch = pathname.match(/^\/api\/v1\/content\/([^/]+)$/);
+  if (ciMatch) {
+    const cid = ciMatch[1];
+    if (method === 'GET') {
+      const r = await sb('GET', `/rest/v1/content_items?id=eq.${cid}&deleted_at=is.null&limit=1`);
+      const item = (r.body || [])[0];
+      if (!item) return json(res, 404, { error: { message: 'Content item not found' } });
+      return json(res, 200, { data: item });
+    }
+    if (method === 'PATCH') {
+      const body = await parseBody(req);
+      const r = await sb('PATCH', `/rest/v1/content_items?id=eq.${cid}`, { ...body, updated_at: new Date().toISOString() });
+      if (r.status >= 400) return json(res, r.status, { error: { message: JSON.stringify(r.body) } });
+      return json(res, 200, { data: (r.body || [])[0] || r.body });
+    }
+    if (method === 'DELETE') {
+      await sb('PATCH', `/rest/v1/content_items?id=eq.${cid}`, { deleted_at: new Date().toISOString() });
+      return json(res, 200, { success: true });
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // ASSESSMENT ASSIGNMENTS (per cohort)
+  // ══════════════════════════════════════════════════════════════════════════════
+  const cohortAsmtList = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/assessments$/);
+  if (cohortAsmtList) {
+    const cid = cohortAsmtList[1];
+    if (method === 'GET') {
+      const r = await sb('GET', `/rest/v1/assessment_assignments?cohort_id=eq.${cid}&select=*,assessments(id,title,description,assessment_type,library_status,sections,timer_minutes,max_attempts)`);
+      return json(res, 200, { data: r.body || [] });
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const { assessment_id, access_open, access_close, mandatory, visibility_org_admin_completion, visibility_org_admin_scores, visibility_org_admin_responses, visibility_participant_score, visibility_participant_report } = body;
+      if (!assessment_id) return json(res, 400, { error: { message: 'assessment_id required' } });
+      const existCheck = await sb('GET', `/rest/v1/assessment_assignments?cohort_id=eq.${cid}&assessment_id=eq.${assessment_id}&select=id&limit=1`);
+      if ((existCheck.body || []).length > 0) return json(res, 409, { error: { message: 'This assessment is already assigned to this cohort' } });
+      const r = await sb('POST', '/rest/v1/assessment_assignments', {
+        id: crypto.randomUUID(), cohort_id: cid, assessment_id,
+        access_open, access_close, mandatory: mandatory ?? true,
+        visibility_org_admin_completion: visibility_org_admin_completion ?? true,
+        visibility_org_admin_scores: visibility_org_admin_scores ?? false,
+        visibility_org_admin_responses: visibility_org_admin_responses ?? false,
+        visibility_participant_score: visibility_participant_score ?? false,
+        visibility_participant_report: visibility_participant_report ?? false,
+      });
+      if (r.status >= 400) return json(res, r.status, { error: { message: JSON.stringify(r.body) } });
+      return json(res, 201, { data: (r.body || [])[0] || r.body });
+    }
+  }
+  const cohortAsmtItem = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/assessments\/([^/]+)$/);
+  if (cohortAsmtItem) {
+    const [, cohortId, asgId] = cohortAsmtItem;
+    if (method === 'PATCH') {
+      const body = await parseBody(req);
+      const r = await sb('PATCH', `/rest/v1/assessment_assignments?id=eq.${asgId}`, body);
+      return json(res, 200, { data: (r.body || [])[0] || r.body });
+    }
+    if (method === 'DELETE') {
+      await sb('DELETE', `/rest/v1/assessment_assignments?id=eq.${asgId}`);
+      return json(res, 200, { success: true });
+    }
+  }
+  // Assessment responses for a cohort assignment
+  const asgResponsesMatch = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/assessments\/([^/]+)\/responses$/);
+  if (asgResponsesMatch) {
+    const [, , asgId] = asgResponsesMatch;
+    if (method === 'GET') {
+      const r = await sb('GET', `/rest/v1/assessment_responses?assignment_id=eq.${asgId}&select=*,enrollments(id,participant_id,users!enrollments_participant_id_fkey(id,name,display_name,email,designation,department))`);
+      return json(res, 200, { data: r.body || [] });
+    }
+  }
+  // All assessment responses across cohorts for an assessment
+  const asmtResponsesMatch = pathname.match(/^\/api\/v1\/assessments\/([^/]+)\/responses$/);
+  if (asmtResponsesMatch) {
+    const aid = asmtResponsesMatch[1];
+    if (method === 'GET') {
+      const assignments = await sb('GET', `/rest/v1/assessment_assignments?assessment_id=eq.${aid}&select=id,cohort_id,cohorts(id,name,cohort_code)`);
+      const asgIds = (assignments.body || []).map(a => a.id);
+      let responses = [];
+      if (asgIds.length > 0) {
+        const r = await sb('GET', `/rest/v1/assessment_responses?assignment_id=in.(${asgIds.join(',')})&select=*,enrollments(id,participant_id,users!enrollments_participant_id_fkey(id,name,display_name,email,designation,department))`);
+        responses = r.body || [];
+      }
+      return json(res, 200, { data: responses, assignments: assignments.body || [] });
     }
   }
 
@@ -705,16 +816,24 @@ module.exports = async function handler(req, res) {
     } catch (err) { return json(res, 500, { error: { message: err.message } }); }
   }
 
-  // ── PATCH/DELETE /cohorts/:id/journey/interventions/:ivId ─────────────────────
-  const ivRouteMatch = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/journey\/interventions\/([^/]+)$/);
-  if (ivRouteMatch) {
-    const [, cid, ivId] = ivRouteMatch;
+
+  // ── PATCH/DELETE /cohorts/:id/journey/interventions/:ivId ───────────────────
+  const ivItemRouteMatch = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/journey\/interventions\/([^/]+)$/);
+  if (ivItemRouteMatch) {
+    const [, cid, ivId] = ivItemRouteMatch;
     if (method === 'PATCH') {
       try {
         const body = await parseBody(req);
-        delete body.id; delete body.journey_id; delete body.cohort_id;
+        const { title, intervention_type, sequence_order, description, facilitator_notes,
+          scheduled_date, scheduled_time, duration_minutes, virtual_session_link,
+          virtual_session_platform, content_item_id, release_at, access_until,
+          is_mandatory, status } = body;
         const r = await sb('PATCH', `/rest/v1/journey_interventions?id=eq.${ivId}&cohort_id=eq.${cid}`, {
-          ...body, updated_at: new Date().toISOString(),
+          title, intervention_type, sequence_order, description, facilitator_notes,
+          scheduled_date, scheduled_time, duration_minutes, virtual_session_link,
+          virtual_session_platform, content_item_id: content_item_id || null,
+          release_at, access_until, is_mandatory, status,
+          updated_at: new Date().toISOString(),
         });
         return json(res, 200, { data: (r.body || [])[0] || r.body });
       } catch (err) { return json(res, 500, { error: { message: err.message } }); }
@@ -722,61 +841,238 @@ module.exports = async function handler(req, res) {
     if (method === 'DELETE') {
       try {
         await sb('DELETE', `/rest/v1/journey_interventions?id=eq.${ivId}&cohort_id=eq.${cid}`);
-        return json(res, 200, { success: true });
+        return json(res, 204, null);
       } catch (err) { return json(res, 500, { error: { message: err.message } }); }
     }
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // ORG ADMIN PORTAL
+  // CONTENT ASSIGNMENTS (per cohort)
   // ══════════════════════════════════════════════════════════════════════════════
-
-  if (pathname === '/api/v1/org-admin/cohorts' && method === 'GET') {
-    if (currentUser.role !== 'ORG_ADMIN') return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Org admin access only' } });
-    try {
-      const cohortsRes = await sb('GET', `/rest/v1/cohorts?org_id=eq.${currentUser.org_id}&deleted_at=is.null&status=in.(active,draft,completed)&order=created_at.desc&select=id,name,cohort_code,program_type,status,start_date,end_date,health_score,health_label,enrollment_capacity,created_at`);
-      const cohorts = cohortsRes.body || [];
-      if (cohorts.length > 0) {
-        const ids = cohorts.map(c => c.id);
-        const enrRes = await sb('GET', `/rest/v1/enrollments?cohort_id=in.(${ids.join(',')})&status=eq.active&select=cohort_id`);
-        const enrMap = {};
-        (enrRes.body || []).forEach(e => { enrMap[e.cohort_id] = (enrMap[e.cohort_id] || 0) + 1; });
-        cohorts.forEach(c => { c.enrollment_count = enrMap[c.id] || 0; });
-      }
-      return json(res, 200, { data: cohorts });
-    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
-  }
-
-  const orgAdminParticipantsMatch = pathname.match(/^\/api\/v1\/org-admin\/cohorts\/([^/]+)\/participants$/);
-  if (orgAdminParticipantsMatch && method === 'GET') {
-    if (currentUser.role !== 'ORG_ADMIN') return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Org admin access only' } });
-    const cid = orgAdminParticipantsMatch[1];
-    try {
-      const cohortRes = await sb('GET', `/rest/v1/cohorts?id=eq.${cid}&org_id=eq.${currentUser.org_id}&select=id&limit=1`);
-      if (!(cohortRes.body || []).length) return json(res, 404, { error: { message: 'Cohort not found' } });
-      const r = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&status=neq.withdrawn&order=enrolled_at.asc&select=id,status,enrolled_at,users(id,name,email,designation,department,status,photo_url,last_login_at)`);
+  const cohortContentList = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/content$/);
+  if (cohortContentList) {
+    const cid = cohortContentList[1];
+    if (method === 'GET') {
+      const r = await sb('GET', `/rest/v1/content_assignments?cohort_id=eq.${cid}&order=sequence_order.asc&select=*,content_items(id,title,description,content_type,library_status,estimated_minutes,file_url,external_url,tags_competency,tags_industry,tags_level,tags_program_type)`);
       return json(res, 200, { data: r.body || [] });
-    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const { content_item_id, module_name, sequence_order, mandatory, visibility_status, release_at, access_until } = body;
+      if (!content_item_id) return json(res, 400, { error: { message: 'content_item_id required' } });
+      const dupCheck = await sb('GET', `/rest/v1/content_assignments?cohort_id=eq.${cid}&content_item_id=eq.${content_item_id}&select=id&limit=1`);
+      if ((dupCheck.body || []).length > 0) return json(res, 409, { error: { message: 'This content is already assigned to this cohort' } });
+      const nextOrder = sequence_order ?? await sbCount('content_assignments', `cohort_id=eq.${cid}`);
+      const r = await sb('POST', '/rest/v1/content_assignments', {
+        id: crypto.randomUUID(), content_item_id, cohort_id: cid,
+        module_name: module_name || 'General',
+        sequence_order: nextOrder,
+        mandatory: mandatory ?? false,
+        visibility_status: visibility_status || 'published',
+        release_at: release_at || null,
+        access_until: access_until || null,
+      });
+      return json(res, 201, { data: (r.body || [])[0] || r.body });
+    }
+  }
+
+  const cohortContentItem = pathname.match(/^\/api\/v1\/cohorts\/([^/]+)\/content\/([^/]+)$/);
+  if (cohortContentItem) {
+    const [, cid, assignId] = cohortContentItem;
+    if (method === 'PATCH') {
+      const body = await parseBody(req);
+      const r = await sb('PATCH', `/rest/v1/content_assignments?id=eq.${assignId}&cohort_id=eq.${cid}`, body);
+      return json(res, 200, { data: (r.body || [])[0] || r.body });
+    }
+    if (method === 'DELETE') {
+      await sb('DELETE', `/rest/v1/content_assignments?id=eq.${assignId}&cohort_id=eq.${cid}`);
+      return json(res, 204, null);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // PARTICIPANT PORTAL
+  // ORG ADMIN ROUTES
+  // ══════════════════════════════════════════════════════════════════════════════
+  const orgAdminParticipants = pathname.match(/^\/api\/v1\/org-admin\/cohorts\/([^/]+)\/participants$/);
+  if (orgAdminParticipants && method === 'GET') {
+    const cid = orgAdminParticipants[1];
+    const r = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&status=eq.active&select=id,enrolled_at,status,participant_id,users!enrollments_participant_id_fkey(id,name,display_name,email,designation,department,phone)`);
+    return json(res, 200, { data: r.body || [] });
+  }
+
+  const orgAdminCohortAssessments = pathname.match(/^\/api\/v1\/org-admin\/cohorts\/([^/]+)\/assessments$/);
+  if (orgAdminCohortAssessments && method === 'GET') {
+    const cid = orgAdminCohortAssessments[1];
+    const r = await sb('GET', `/rest/v1/assessment_assignments?cohort_id=eq.${cid}&select=*,assessments(id,title,description,assessment_type,library_status,sections,timer_minutes,max_attempts)`);
+    return json(res, 200, { data: r.body || [] });
+  }
+
+  const orgAdminCohortContent = pathname.match(/^\/api\/v1\/org-admin\/cohorts\/([^/]+)\/content$/);
+  if (orgAdminCohortContent && method === 'GET') {
+    const cid = orgAdminCohortContent[1];
+    const r = await sb('GET', `/rest/v1/content_assignments?cohort_id=eq.${cid}&visibility_status=eq.published&order=sequence_order.asc&select=*,content_items(id,title,description,content_type,estimated_minutes,file_url,external_url,tags_competency,tags_level)`);
+    return json(res, 200, { data: r.body || [] });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PARTICIPANT ENDPOINTS
   // ══════════════════════════════════════════════════════════════════════════════
 
+  // GET /participant/cohorts — list cohorts the logged-in participant is enrolled in
   if (pathname === '/api/v1/participant/cohorts' && method === 'GET') {
-    if (currentUser.role !== 'PARTICIPANT') return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Participant access only' } });
+    const r = await sb('GET', `/rest/v1/enrollments?participant_id=eq.${currentUser.sub}&status=eq.active&select=id,enrolled_at,cohorts(id,name,cohort_code,program_type,status,start_date,end_date,enrollment_capacity,organizations(id,name,display_name))`);
+    const cohorts = (r.body || []).map(e => ({ ...e.cohorts, enrollment_id: e.id, enrolled_at: e.enrolled_at }));
+    return json(res, 200, { data: cohorts });
+  }
+
+  // GET participant content (level-based with progress)
+  const participantContent = pathname.match(/^\/api\/v1\/participant\/cohorts\/([^/]+)\/content$/);
+  if (participantContent && method === 'GET') {
+    const cid = participantContent[1];
     try {
-      const r = await sb('GET', `/rest/v1/enrollments?participant_id=eq.${currentUser.sub}&status=eq.active&order=enrolled_at.desc&select=id,status,enrolled_at,cohorts(id,name,cohort_code,program_type,status,start_date,end_date,organizations(id,display_name,logo_url))`);
-      const cohorts = (r.body || []).map(e => ({
-        enrollment_id: e.id,
-        enrolled_at: e.enrolled_at,
-        ...(e.cohorts || {}),
-      }));
-      return json(res, 200, { data: cohorts });
+      const enrRes = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&participant_id=eq.${currentUser.sub}&status=eq.active&select=id&limit=1`);
+      const enrollment = (enrRes.body || [])[0];
+      if (!enrollment) return json(res, 404, { error: { message: 'Not enrolled in this cohort' } });
+      const enrollmentId = enrollment.id;
+
+      const caRes = await sb('GET', `/rest/v1/content_assignments?cohort_id=eq.${cid}&visibility_status=eq.published&order=sequence_order.asc&select=*,content_items(id,title,description,content_type,estimated_minutes,file_url,external_url,rich_body,tags_competency,tags_level)`);
+      const assignments = caRes.body || [];
+      if (assignments.length === 0) return json(res, 200, { data: [] });
+
+      const caIds = assignments.map(a => a.id);
+      const progRes = await sb('GET', `/rest/v1/content_progress?enrollment_id=eq.${enrollmentId}&content_assignment_id=in.(${caIds.join(',')})&select=content_assignment_id,completed,completed_at,last_accessed_at`);
+      const progressMap = {};
+      (progRes.body || []).forEach(p => { progressMap[p.content_assignment_id] = p; });
+
+      let prevCompleted = true;
+      const result = assignments.map((a, i) => {
+        const prog = progressMap[a.id] || null;
+        const isCompleted = prog?.completed || false;
+        const isLocked = i > 0 && !prevCompleted;
+        prevCompleted = isCompleted;
+        return { ...a, progress: prog, is_completed: isCompleted, is_locked: isLocked };
+      });
+      return json(res, 200, { data: result });
     } catch (err) { return json(res, 500, { error: { message: err.message } }); }
   }
 
-  // 404
-  return json(res, 404, { error: { code: 'NOT_FOUND', message: `${method} ${pathname} not found` } });
-};
+  // GET participant assessments with response status
+  const participantAssessments = pathname.match(/^\/api\/v1\/participant\/cohorts\/([^/]+)\/assessments$/);
+  if (participantAssessments && method === 'GET') {
+    const cid = participantAssessments[1];
+    try {
+      const enrRes = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${cid}&participant_id=eq.${currentUser.sub}&status=eq.active&select=id&limit=1`);
+      const enrollment = (enrRes.body || [])[0];
+      if (!enrollment) return json(res, 404, { error: { message: 'Not enrolled' } });
+      const enrollmentId = enrollment.id;
+
+      const aaRes = await sb('GET', `/rest/v1/assessment_assignments?cohort_id=eq.${cid}&select=*,assessments(id,title,description,assessment_type,sections,timer_minutes,max_attempts)`);
+      const assignments = aaRes.body || [];
+      if (assignments.length === 0) return json(res, 200, { data: [] });
+
+      const asgIds = assignments.map(a => a.id);
+      const respRes = await sb('GET', `/rest/v1/assessment_responses?assignment_id=in.(${asgIds.join(',')})&enrollment_id=eq.${enrollmentId}&select=id,assignment_id,status,attempt_number,total_score,submitted_at,started_at&order=started_at.desc`);
+      const responseMap = {};
+      (respRes.body || []).forEach(r => {
+        if (!responseMap[r.assignment_id]) responseMap[r.assignment_id] = r;
+      });
+      const result = assignments.map(a => ({ ...a, my_response: responseMap[a.id] || null }));
+      return json(res, 200, { data: result });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
+  // POST start/resume assessment attempt
+  const participantStartAsmt = pathname.match(/^\/api\/v1\/participant\/assessments\/([^/]+)\/start$/);
+  if (participantStartAsmt && method === 'POST') {
+    const asgId = participantStartAsmt[1];
+    try {
+      const aaRes = await sb('GET', `/rest/v1/assessment_assignments?id=eq.${asgId}&select=cohort_id,assessments(max_attempts)&limit=1`);
+      const assignment = (aaRes.body || [])[0];
+      if (!assignment) return json(res, 404, { error: { message: 'Assignment not found' } });
+      const enrRes = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${assignment.cohort_id}&participant_id=eq.${currentUser.sub}&status=eq.active&select=id&limit=1`);
+      const enrollment = (enrRes.body || [])[0];
+      if (!enrollment) return json(res, 403, { error: { message: 'Not enrolled' } });
+
+      // Resume existing in-progress
+      const existingRes = await sb('GET', `/rest/v1/assessment_responses?assignment_id=eq.${asgId}&enrollment_id=eq.${enrollment.id}&status=eq.in_progress&select=id,attempt_number,answers,started_at&limit=1`);
+      if ((existingRes.body || []).length > 0) {
+        return json(res, 200, { data: existingRes.body[0], resumed: true });
+      }
+
+      const attCount = await sbCount('assessment_responses', `assignment_id=eq.${asgId}&enrollment_id=eq.${enrollment.id}`);
+      const maxAtt = assignment.assessments?.max_attempts || 1;
+      if (attCount >= maxAtt) return json(res, 400, { error: { message: 'Maximum attempts reached' } });
+
+      const r = await sb('POST', '/rest/v1/assessment_responses', {
+        id: crypto.randomUUID(),
+        assignment_id: asgId,
+        enrollment_id: enrollment.id,
+        attempt_number: attCount + 1,
+        status: 'in_progress',
+        answers: {},
+        started_at: new Date().toISOString(),
+      });
+      return json(res, 201, { data: (r.body || [])[0] || r.body, resumed: false });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
+  // PATCH save answers
+  const participantSaveResp = pathname.match(/^\/api\/v1\/participant\/responses\/([^/]+)$/);
+  if (participantSaveResp && method === 'PATCH') {
+    const respId = participantSaveResp[1];
+    try {
+      const body = await parseBody(req);
+      const r = await sb('PATCH', `/rest/v1/assessment_responses?id=eq.${respId}&status=eq.in_progress`, {
+        answers: body.answers,
+        time_taken_seconds: body.time_taken_seconds,
+      });
+      return json(res, 200, { data: (r.body || [])[0] || r.body });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
+  // POST submit assessment
+  const participantSubmitResp = pathname.match(/^\/api\/v1\/participant\/responses\/([^/]+)\/submit$/);
+  if (participantSubmitResp && method === 'POST') {
+    const respId = participantSubmitResp[1];
+    try {
+      const body = await parseBody(req);
+      const r = await sb('PATCH', `/rest/v1/assessment_responses?id=eq.${respId}&status=eq.in_progress`, {
+        answers: body.answers,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        time_taken_seconds: body.time_taken_seconds,
+      });
+      return json(res, 200, { data: (r.body || [])[0] || r.body });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
+  // POST mark content as read/complete
+  const participantCompleteContent = pathname.match(/^\/api\/v1\/participant\/content-progress\/([^/]+)\/complete$/);
+  if (participantCompleteContent && method === 'POST') {
+    const caId = participantCompleteContent[1];
+    try {
+      const caRes = await sb('GET', `/rest/v1/content_assignments?id=eq.${caId}&select=cohort_id&limit=1`);
+      const ca = (caRes.body || [])[0];
+      if (!ca) return json(res, 404, { error: { message: 'Content assignment not found' } });
+      const enrRes = await sb('GET', `/rest/v1/enrollments?cohort_id=eq.${ca.cohort_id}&participant_id=eq.${currentUser.sub}&status=eq.active&select=id&limit=1`);
+      const enrollment = (enrRes.body || [])[0];
+      if (!enrollment) return json(res, 403, { error: { message: 'Not enrolled' } });
+
+      const now = new Date().toISOString();
+      const existingProg = await sb('GET', `/rest/v1/content_progress?content_assignment_id=eq.${caId}&enrollment_id=eq.${enrollment.id}&select=id&limit=1`);
+      if ((existingProg.body || []).length > 0) {
+        await sb('PATCH', `/rest/v1/content_progress?content_assignment_id=eq.${caId}&enrollment_id=eq.${enrollment.id}`, {
+          completed: true, completed_at: now, last_accessed_at: now,
+        });
+      } else {
+        await sb('POST', '/rest/v1/content_progress', {
+          id: crypto.randomUUID(), content_assignment_id: caId, enrollment_id: enrollment.id,
+          completed: true, completed_at: now, accessed_at: now, last_accessed_at: now,
+        });
+      }
+      return json(res, 200, { success: true });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
+  return json(res, 404, { error: { message: `Route not found: ${method} ${pathname}` } });
 };
