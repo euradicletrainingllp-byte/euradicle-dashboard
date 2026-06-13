@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, GraduationCap, Bell, LogOut, Zap, Menu, User, KeyRound } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Bell, LogOut, Zap, Menu, User, KeyRound, Sun, Moon } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeStore } from '../../store/themeStore';
 import api from '../../lib/api';
 import { ChangePasswordModal } from '../ChangePasswordModal';
 
@@ -11,13 +12,11 @@ const navItems = [
   { to: '/participant/profile', icon: User,            label: 'My Profile' },
 ];
 
-const SIDEBAR_BG = 'linear-gradient(180deg, #1a1b32 0%, #141528 100%)';
-const SIDEBAR_BORDER = 'rgba(170,120,166,0.12)';
-
 export default function ParticipantLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showChangePwd, setShowChangePwd] = useState(false);
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
 
   async function handleLogout() {
@@ -28,7 +27,7 @@ export default function ParticipantLayout() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: `1px solid ${SIDEBAR_BORDER}` }}>
+      <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
         <motion.div
           animate={{ boxShadow: ['0 4px 16px rgba(170,120,166,0.35)', '0 4px 28px rgba(170,120,166,0.6)', '0 4px 16px rgba(170,120,166,0.35)'] }}
           transition={{ duration: 3, repeat: Infinity }}
@@ -37,8 +36,8 @@ export default function ParticipantLayout() {
           <Zap size={17} className="text-white" />
         </motion.div>
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: '#aa78a6' }}>EuRadicle</p>
-          <p className="text-sm font-bold leading-tight" style={{ color: '#f0e8fc' }}>ELOP</p>
+          <p className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: 'var(--brand)' }}>EuRadicle</p>
+          <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text-heading)' }}>ELOP</p>
         </div>
       </div>
 
@@ -56,26 +55,33 @@ export default function ParticipantLayout() {
         ))}
       </nav>
 
-      <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${SIDEBAR_BORDER}` }}>
+      <div className="p-3 space-y-1" style={{ borderTop: '1px solid var(--border)' }}>
+        <button onClick={toggleTheme} className="nav-item w-full">
+          {theme === 'dark' ? <Sun size={20} className="flex-shrink-0" /> : <Moon size={20} className="flex-shrink-0" />}
+          <span className="text-sm">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+
         <button onClick={() => setShowChangePwd(true)} className="nav-item w-full">
           <KeyRound size={20} className="flex-shrink-0" />
           <span className="text-sm">Change Password</span>
         </button>
+
         <button onClick={handleLogout} className="nav-item w-full" style={{ color: '#e05065' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; e.currentTarget.style.color = '#f08090'; }}
           onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#e05065'; }}>
           <LogOut size={20} className="flex-shrink-0" />
           <span className="text-sm">Sign out</span>
         </button>
+
         <div className="mt-3 px-3 py-2.5 rounded-xl flex items-center gap-3"
-          style={{ background: 'rgba(170,120,166,0.06)', border: '1px solid rgba(170,120,166,0.1)' }}>
+          style={{ background: 'var(--bg-user-card)', border: '1px solid var(--border-subtle)' }}>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #6496dc, #3e3264)' }}>
             {user?.name?.[0] || 'P'}
           </div>
           <div className="overflow-hidden">
-            <p className="text-xs font-semibold truncate" style={{ color: '#f0e8fc' }}>{user?.name || 'Participant'}</p>
-            <p className="text-xs truncate" style={{ color: '#7060a0' }}>{user?.designation || 'Participant'}</p>
+            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-heading)' }}>{user?.name || 'Participant'}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>{user?.designation || 'Participant'}</p>
           </div>
         </div>
       </div>
@@ -83,10 +89,9 @@ export default function ParticipantLayout() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden grid-bg" style={{ background: '#15162a' }}>
-      {/* Desktop sidebar */}
+    <div className="flex h-screen overflow-hidden grid-bg" style={{ background: 'var(--bg-page)' }}>
       <aside className="hidden lg:flex flex-col flex-shrink-0 w-60"
-        style={{ background: SIDEBAR_BG, borderRight: `1px solid ${SIDEBAR_BORDER}` }}>
+        style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border)' }}>
         <SidebarContent />
       </aside>
 
@@ -95,11 +100,11 @@ export default function ParticipantLayout() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)} className="fixed inset-0 z-40 lg:hidden"
-              style={{ background: 'rgba(21,22,42,0.7)', backdropFilter: 'blur(4px)' }} />
+              style={{ background: 'var(--mobile-overlay)', backdropFilter: 'blur(4px)' }} />
             <motion.aside initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed left-0 top-0 h-full w-60 z-50 lg:hidden"
-              style={{ background: SIDEBAR_BG, borderRight: `1px solid ${SIDEBAR_BORDER}` }}>
+              style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border)' }}>
               <SidebarContent />
             </motion.aside>
           </>
@@ -108,17 +113,17 @@ export default function ParticipantLayout() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ background: 'rgba(21,22,42,0.88)', backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(170,120,166,0.1)` }}>
-          <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1" style={{ color: '#7060a0' }}>
+          style={{ background: 'var(--bg-header)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1" style={{ color: 'var(--text-faint)' }}>
             <Menu size={22} />
           </button>
-          <div className="hidden lg:flex items-center gap-2 text-xs" style={{ color: '#5a4870' }}>
-            <span>ELOP</span><span>/</span><span style={{ color: '#9080a8' }}>My Learning</span>
+          <div className="hidden lg:flex items-center gap-2 text-xs" style={{ color: 'var(--text-ghost)' }}>
+            <span>ELOP</span><span>/</span><span style={{ color: 'var(--text-muted)' }}>My Learning</span>
           </div>
           <div className="flex items-center gap-3 ml-auto">
             <motion.button whileHover={{ scale: 1.05 }}
               className="p-2 rounded-xl transition-all duration-200"
-              style={{ border: '1px solid rgba(170,120,166,0.14)', color: '#7060a0' }}>
+              style={{ border: '1px solid var(--border-subtle)', color: 'var(--text-faint)' }}>
               <Bell size={18} />
             </motion.button>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"

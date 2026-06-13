@@ -3,15 +3,122 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Dark mode defaults (also legacy surface aliases) ───── */
   :root {
-    --brand:         #aa78a6;
-    --brand-deep:    #3e3264;
-    --brand-glow:    rgba(170, 120, 166, 0.45);
-    --brand-glow2:   rgba(62, 50, 100, 0.55);
-    --surface:       #15162a;
-    --surface-mid:   #1e1f38;
-    --surface-card:  #242538;
-    --surface-border: rgba(170, 120, 166, 0.15);
+    /* Brand */
+    --brand:              #aa78a6;
+    --brand-deep:         #3e3264;
+    --brand-glow:         rgba(170, 120, 166, 0.45);
+    --brand-glow2:        rgba(62, 50, 100, 0.55);
+
+    /* Legacy surface aliases (kept for backward compat) */
+    --surface:            #15162a;
+    --surface-mid:        #1e1f38;
+    --surface-card:       #242538;
+    --surface-border:     rgba(170, 120, 166, 0.15);
+
+    /* Page & structure */
+    --bg-page:            #15162a;
+    --bg-sidebar:         linear-gradient(180deg, #1a1b32 0%, #141528 100%);
+    --bg-header:          rgba(21, 22, 42, 0.88);
+    --bg-mid:             #1e1f38;
+    --bg-glass:           linear-gradient(135deg, rgba(36,37,56,0.95) 0%, rgba(30,31,56,0.88) 100%);
+    --bg-hover:           rgba(170, 120, 166, 0.08);
+    --bg-user-card:       rgba(170, 120, 166, 0.06);
+    --bg-input:           rgba(255, 255, 255, 0.04);
+    --bg-progress:        rgba(255, 255, 255, 0.07);
+    --mobile-overlay:     rgba(21, 22, 42, 0.7);
+
+    /* Text */
+    --text-heading:       #f0e8fc;
+    --text-body:          #e8e0f0;
+    --text-secondary:     #c8b8e0;
+    --text-muted:         #9080a8;
+    --text-faint:         #7060a0;
+    --text-ghost:         #5a4870;
+    --text-ultra:         #4a3860;
+
+    /* Borders */
+    --border:             rgba(170, 120, 166, 0.12);
+    --border-subtle:      rgba(170, 120, 166, 0.10);
+    --border-mid:         rgba(170, 120, 166, 0.25);
+
+    /* Shadows */
+    --shadow-card:        0 4px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset;
+    --shadow-card-hover:  0 8px 48px rgba(62,50,100,0.4), 0 0 0 1px rgba(170,120,166,0.2), 0 1px 0 rgba(255,255,255,0.06) inset;
+    --shadow-kpi-hover:   0 12px 48px rgba(62,50,100,0.45), 0 0 0 1px rgba(170,120,166,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+
+    /* Scrollbar */
+    --scroll-track:       #15162a;
+    --scroll-thumb:       rgba(170,120,166,0.3);
+    --scroll-thumb-hover: rgba(170,120,166,0.55);
+
+    /* Chips (non-status) */
+    --chip-draft-bg:          rgba(150, 140, 200, 0.12);
+    --chip-draft-fg:          #b8aad8;
+    --chip-draft-border:      rgba(150, 140, 200, 0.22);
+    --chip-completed-bg:      rgba(62, 50, 100, 0.30);
+    --chip-completed-fg:      #a898cc;
+    --chip-completed-border:  rgba(62, 50, 100, 0.50);
+    --chip-archived-bg:       rgba(90, 80, 112, 0.18);
+    --chip-archived-fg:       #7a708a;
+    --chip-archived-border:   rgba(90, 80, 112, 0.30);
+  }
+
+  /* ── Light mode overrides ────────────────────────────────── */
+  [data-theme="light"] {
+    /* Legacy surface aliases */
+    --surface:            #f5f0ff;
+    --surface-mid:        #ede6ff;
+    --surface-card:       #ffffff;
+    --surface-border:     rgba(170, 120, 166, 0.20);
+
+    /* Page & structure */
+    --bg-page:            #f5f0ff;
+    --bg-sidebar:         linear-gradient(180deg, #ede6ff 0%, #e5dbff 100%);
+    --bg-header:          rgba(245, 240, 255, 0.92);
+    --bg-mid:             #e8e0ff;
+    --bg-glass:           linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(248,245,255,0.94) 100%);
+    --bg-hover:           rgba(170, 120, 166, 0.07);
+    --bg-user-card:       rgba(170, 120, 166, 0.07);
+    --bg-input:           rgba(170, 120, 166, 0.04);
+    --bg-progress:        rgba(62, 50, 100, 0.08);
+    --mobile-overlay:     rgba(62, 50, 100, 0.45);
+
+    /* Text */
+    --text-heading:       #1a0e30;
+    --text-body:          #2a1a40;
+    --text-secondary:     #4a3060;
+    --text-muted:         #7a5898;
+    --text-faint:         #9a78a8;
+    --text-ghost:         #c0a0d8;
+    --text-ultra:         #d8c0ec;
+
+    /* Borders */
+    --border:             rgba(170, 120, 166, 0.18);
+    --border-subtle:      rgba(170, 120, 166, 0.14);
+    --border-mid:         rgba(170, 120, 166, 0.32);
+
+    /* Shadows */
+    --shadow-card:        0 4px 24px rgba(62,50,100,0.10), 0 1px 0 rgba(255,255,255,0.90) inset;
+    --shadow-card-hover:  0 8px 32px rgba(62,50,100,0.15), 0 0 0 1px rgba(170,120,166,0.25);
+    --shadow-kpi-hover:   0 12px 32px rgba(62,50,100,0.15), 0 0 0 1px rgba(170,120,166,0.22);
+
+    /* Scrollbar */
+    --scroll-track:       #ede6ff;
+    --scroll-thumb:       rgba(170,120,166,0.25);
+    --scroll-thumb-hover: rgba(170,120,166,0.50);
+
+    /* Chips (non-status) */
+    --chip-draft-bg:          rgba(170, 120, 166, 0.10);
+    --chip-draft-fg:          #7a5090;
+    --chip-draft-border:      rgba(170, 120, 166, 0.22);
+    --chip-completed-bg:      rgba(62, 50, 100, 0.12);
+    --chip-completed-fg:      #5a3888;
+    --chip-completed-border:  rgba(62, 50, 100, 0.25);
+    --chip-archived-bg:       rgba(90, 80, 112, 0.08);
+    --chip-archived-fg:       #8a7098;
+    --chip-archived-border:   rgba(90, 80, 112, 0.20);
   }
 
   * { box-sizing: border-box; }
@@ -19,41 +126,37 @@
   html { scroll-behavior: smooth; font-size: 14px; }
 
   body {
-    background: var(--surface);
-    color: #e8e0f0;
+    background: var(--bg-page);
+    color: var(--text-body);
     font-family: 'Source Sans 3', system-ui, sans-serif;
     overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
   }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: #15162a; }
-  ::-webkit-scrollbar-thumb { background: rgba(170,120,166,0.3); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(170,120,166,0.55); }
+  ::-webkit-scrollbar-track { background: var(--scroll-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 }
 
 @layer components {
 
   /* ── Glass card ─────────────────────────────────────── */
   .glass-card {
-    background: linear-gradient(135deg, rgba(36,37,56,0.95) 0%, rgba(30,31,56,0.88) 100%);
+    background: var(--bg-glass);
     border: 1px solid var(--surface-border);
     border-radius: 1.25rem;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow:
-      0 4px 32px rgba(0,0,0,0.45),
-      0 1px 0 rgba(255,255,255,0.04) inset;
+    box-shadow: var(--shadow-card);
   }
 
   .glass-card-hover {
     @apply glass-card transition-all duration-300;
   }
   .glass-card-hover:hover {
-    border-color: rgba(170,120,166,0.35);
-    box-shadow:
-      0 8px 48px rgba(62,50,100,0.4),
-      0 0 0 1px rgba(170,120,166,0.2),
-      0 1px 0 rgba(255,255,255,0.06) inset;
+    border-color: var(--border-mid);
+    box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
   }
 
@@ -74,34 +177,35 @@
 
   .btn-ghost {
     @apply px-4 py-2 rounded-xl font-medium transition-all duration-200;
-    color: #b8a8cc;
+    color: var(--text-secondary);
     border: 1px solid var(--surface-border);
   }
   .btn-ghost:hover {
-    color: #e8e0f0;
+    color: var(--text-body);
     border-color: rgba(170,120,166,0.4);
-    background: rgba(170,120,166,0.08);
+    background: var(--bg-hover);
   }
 
   .btn-secondary {
     @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200;
-    background: rgba(62,50,100,0.35);
-    border: 1px solid rgba(62,50,100,0.6);
-    color: #c8b8e4;
+    background: rgba(62,50,100,0.25);
+    border: 1px solid rgba(62,50,100,0.45);
+    color: var(--text-secondary);
   }
   .btn-secondary:hover {
-    background: rgba(62,50,100,0.55);
+    background: rgba(62,50,100,0.40);
     border-color: rgba(170,120,166,0.4);
-    box-shadow: 0 4px 16px rgba(62,50,100,0.4);
+    box-shadow: 0 4px 16px rgba(62,50,100,0.3);
   }
 
   /* ── Inputs ─────────────────────────────────────────── */
   .input-field {
-    @apply w-full px-4 py-3 rounded-xl text-white placeholder-slate-500 outline-none transition-all duration-200;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(170,120,166,0.15);
-    color: #e8e0f0;
+    @apply w-full px-4 py-3 rounded-xl outline-none transition-all duration-200;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-body);
   }
+  .input-field::placeholder { color: var(--text-faint) !important; }
   .input-field:focus {
     border-color: rgba(170,120,166,0.55);
     box-shadow: 0 0 0 3px rgba(170,120,166,0.12);
@@ -111,14 +215,14 @@
   /* ── Sidebar nav ────────────────────────────────────── */
   .nav-item {
     @apply flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 cursor-pointer;
-    color: #9080a8;
+    color: var(--text-muted);
   }
   .nav-item:hover {
-    color: #e8e0f0;
-    background: rgba(170,120,166,0.1);
+    color: var(--text-body);
+    background: var(--bg-hover);
   }
   .nav-item.active {
-    color: #f0e8fc;
+    color: var(--text-heading);
     background: linear-gradient(135deg, rgba(170,120,166,0.2) 0%, rgba(62,50,100,0.25) 100%);
     border: 1px solid rgba(170,120,166,0.28);
     box-shadow: 0 2px 12px rgba(62,50,100,0.3);
@@ -139,7 +243,7 @@
   /* ── Progress bar ───────────────────────────────────── */
   .progress-bar {
     @apply h-1.5 rounded-full overflow-hidden;
-    background: rgba(255,255,255,0.07);
+    background: var(--bg-progress);
   }
   .progress-bar-fill {
     @apply h-full rounded-full transition-all duration-700;
@@ -152,9 +256,9 @@
     overflow: hidden;
     border-radius: 1.5rem;
     padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(36,37,56,0.95) 0%, rgba(30,28,52,0.9) 100%);
-    border: 1px solid rgba(170,120,166,0.18);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
     transition: all 0.3s ease;
   }
   .kpi-orb::before {
@@ -170,7 +274,7 @@
   }
   .kpi-orb:hover {
     border-color: rgba(170,120,166,0.32);
-    box-shadow: 0 12px 48px rgba(62,50,100,0.45), 0 0 0 1px rgba(170,120,166,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+    box-shadow: var(--shadow-kpi-hover);
     transform: translateY(-3px);
   }
 
@@ -179,15 +283,40 @@
     @apply text-xs font-semibold px-2.5 py-1 rounded-lg;
     background: linear-gradient(135deg, rgba(170,120,166,0.2), rgba(62,50,100,0.3));
     border: 1px solid rgba(170,120,166,0.25);
-    color: #d0b8e8;
+    color: var(--text-secondary);
   }
 
   /* ── Status chips ───────────────────────────────────── */
-  .chip-active   { @apply text-xs font-medium px-2.5 py-1 rounded-lg; background: rgba(64,201,128,0.12); color: #40c980; border: 1px solid rgba(64,201,128,0.25); }
-  .chip-draft    { @apply text-xs font-medium px-2.5 py-1 rounded-lg; background: rgba(150,140,200,0.12); color: #b8aad8; border: 1px solid rgba(150,140,200,0.22); }
-  .chip-completed{ @apply text-xs font-medium px-2.5 py-1 rounded-lg; background: rgba(62,50,100,0.3);   color: #a898cc; border: 1px solid rgba(62,50,100,0.5); }
-  .chip-archived { @apply text-xs font-medium px-2.5 py-1 rounded-lg; background: rgba(90,80,112,0.18);  color: #7a708a; border: 1px solid rgba(90,80,112,0.3); }
-  .chip-inactive { @apply text-xs font-medium px-2.5 py-1 rounded-lg; background: rgba(224,80,101,0.12); color: #e05065; border: 1px solid rgba(224,80,101,0.25); }
+  .chip-active {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg;
+    background: rgba(64,201,128,0.12);
+    color: #40c980;
+    border: 1px solid rgba(64,201,128,0.25);
+  }
+  .chip-draft {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg;
+    background: var(--chip-draft-bg);
+    color: var(--chip-draft-fg);
+    border: 1px solid var(--chip-draft-border);
+  }
+  .chip-completed {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg;
+    background: var(--chip-completed-bg);
+    color: var(--chip-completed-fg);
+    border: 1px solid var(--chip-completed-border);
+  }
+  .chip-archived {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg;
+    background: var(--chip-archived-bg);
+    color: var(--chip-archived-fg);
+    border: 1px solid var(--chip-archived-border);
+  }
+  .chip-inactive {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg;
+    background: rgba(224,80,101,0.12);
+    color: #e05065;
+    border: 1px solid rgba(224,80,101,0.25);
+  }
 
   /* ── Floating grid bg ───────────────────────────────── */
   .grid-bg {
