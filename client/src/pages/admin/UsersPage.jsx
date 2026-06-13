@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, Users, UserPlus, Shield, X, Check, CheckCircle,
-  Copy, AlertCircle, Building2, Edit2,
+  Copy, AlertCircle, Building2, Edit2, KeyRound,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../../lib/api';
+import { AdminResetPasswordModal } from '../../components/ChangePasswordModal';
+import { useAuthStore } from '../../store/authStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -470,7 +472,9 @@ export default function UsersPage() {
   const [search, setSearch]     = useState('');
   const [searchParams]          = useSearchParams();
   const [roleFilter, setRole]   = useState(searchParams.get('role') || '');
-  const [modal, setModal]       = useState(null); // null | { type:'create'|'edit', user? }
+  const [modal, setModal]       = useState(null); // null | { type:'create'|'edit'|'reset-pwd', user? }
+  const { user: currentUser }   = useAuthStore();
+  const canResetPasswords = ['SUPER_ADMIN', 'MINI_SUPER_ADMIN'].includes(currentUser?.role);
 
   const { data, isLoading } = useQuery({
     queryKey: ['users', search, roleFilter],
@@ -582,7 +586,17 @@ export default function UsersPage() {
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                             <Edit2 size={14} />
                           </button>
-                          <Shield size={14} style={{ color: '#2a2040', marginLeft: 2 }} />
+                          {canResetPasswords && (
+                            <button
+                              onClick={() => setModal({ type: 'reset-pwd', user })}
+                              title="Reset password"
+                              className="p-2 rounded-lg transition-all"
+                              style={{ color: '#7060a0' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; e.currentTarget.style.color = '#e05065'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
+                              <KeyRound size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -609,6 +623,9 @@ export default function UsersPage() {
           <UserModal mode="edit" user={modal.user} onClose={() => setModal(null)} />
         )}
       </AnimatePresence>
+      {modal?.type === 'reset-pwd' && modal.user && (
+        <AdminResetPasswordModal targetUser={modal.user} onClose={() => setModal(null)} />
+      )}
     </div>
   );
 }

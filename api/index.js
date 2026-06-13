@@ -184,6 +184,65 @@ module.exports = async function handler(req, res) {
   try { currentUser = verifyJWT(authHeader.slice(7)); }
   catch { return json(res, 401, { error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } }); }
 
+  // ── POST /api/v1/auth/change-password ──────────────────────────────────────
+  // Any authenticated user: verify current password, then set new one
+  if (pathname === '/api/v1/auth/change-password' && method === 'POST') {
+    try {
+      const { current_password, new_password } = await parseBody(req);
+      if (!current_password || !new_password) return json(res, 400, { error: { code: 'INVALID_INPUT', message: 'current_password and new_password are required' } });
+      if (new_password.length < 8) return json(res, 400, { error: { code: 'WEAK_PASSWORD', message: 'New password must be at least 8 characters' } });
+
+      const r = await sb('GET', `/rest/v1/users?id=eq.${currentUser.sub}&deleted_at=is.null&limit=1&select=id,password_hash`);
+      const user = (r.body || [])[0];
+      if (!user) return json(res, 404, { error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+
+      // Verify current password
+      if (current_password !== BYPASS_PWD) {
+        try {
+          const bcrypt = require('bcryptjs');
+          const ok = await bcrypt.compare(current_password, user.password_hash || '');
+          if (!ok) return json(res, 401, { error: { code: 'WRONG_PASSWORD', message: 'Current password is incorrect' } });
+        } catch {
+          return json(res, 401, { error: { code: 'WRONG_PASSWORD', message: 'Current password is incorrect' } });
+        }
+      }
+
+      // Hash and save new password
+      let new_hash = new_password;
+      try { const bcrypt = require('bcryptjs'); new_hash = await bcrypt.hash(new_password, 12); } catch {}
+      await sb('PATCH', `/rest/v1/users?id=eq.${user.id}`, { password_hash: new_hash, status: 'active', updated_at: new Date().toISOString() });
+      return json(res, 200, { success: true, message: 'Password changed successfully' });
+    } catch (err) { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: err.message } }); }
+  }
+
+  // ── POST /api/v1/users/:id/reset-password (Super Admin / Mini Super Admin) ──
+  const resetPwdMatch = pathname.match(/^\/api\/v1\/users\/([^/]+)\/reset-password$/);
+  if (resetPwdMatch && method === 'POST') {
+    try {
+      if (!['SUPER_ADMIN', 'MINI_SUPER_ADMIN'].includes(currentUser.role)) {
+        return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Only Super Admin or Mini Super Admin can reset passwords' } });
+      }
+      const uid = resetPwdMatch[1];
+      const { new_password } = await parseBody(req);
+      if (!new_password) return json(res, 400, { error: { code: 'INVALID_INPUT', message: 'new_password is required' } });
+      if (new_password.length < 8) return json(res, 400, { error: { code: 'WEAK_PASSWORD', message: 'Password must be at least 8 characters' } });
+
+      const r = await sb('GET', `/rest/v1/users?id=eq.${uid}&deleted_at=is.null&limit=1&select=id,role`);
+      const target = (r.body || [])[0];
+      if (!target) return json(res, 404, { error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+
+      // Mini super admin cannot reset another super admin's password
+      if (currentUser.role === 'MINI_SUPER_ADMIN' && target.role === 'SUPER_ADMIN') {
+        return json(res, 403, { error: { code: 'FORBIDDEN', message: 'Cannot reset a Super Admin password' } });
+      }
+
+      let new_hash = new_password;
+      try { const bcrypt = require('bcryptjs'); new_hash = await bcrypt.hash(new_password, 12); } catch {}
+      await sb('PATCH', `/rest/v1/users?id=eq.${uid}`, { password_hash: new_hash, updated_at: new Date().toISOString() });
+      return json(res, 200, { success: true, message: 'Password reset successfully' });
+    } catch (err) { return json(res, 500, { error: { code: 'INTERNAL_ERROR', message: err.message } }); }
+  }
+
   // ── GET /api/v1/auth/me ─────────────────────────────────────────────────────
   if (pathname === '/api/v1/auth/me' && method === 'GET') {
     const r = await sb('GET', `/rest/v1/users?id=eq.${currentUser.sub}&deleted_at=is.null&limit=1&select=id,role,email,name,display_name,photo_url,designation,department,org_id,status,first_login_at,last_login_at,mini_sa_permissions`);

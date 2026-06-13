@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, GraduationCap, Bell, LogOut, Zap, Menu, User } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Bell, LogOut, Zap, Menu, User, KeyRound } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../lib/api';
+import { ChangePasswordModal } from '../ChangePasswordModal';
 
 const navItems = [
   { to: '/participant',         icon: LayoutDashboard, label: 'My Learning',  end: true },
@@ -15,6 +16,7 @@ const SIDEBAR_BORDER = 'rgba(170,120,166,0.12)';
 
 export default function ParticipantLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showChangePwd, setShowChangePwd] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -55,6 +57,10 @@ export default function ParticipantLayout() {
       </nav>
 
       <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${SIDEBAR_BORDER}` }}>
+        <button onClick={() => setShowChangePwd(true)} className="nav-item w-full">
+          <KeyRound size={20} className="flex-shrink-0" />
+          <span className="text-sm">Change Password</span>
+        </button>
         <button onClick={handleLogout} className="nav-item w-full" style={{ color: '#e05065' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; e.currentTarget.style.color = '#f08090'; }}
           onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#e05065'; }}>
@@ -123,6 +129,8 @@ export default function ParticipantLayout() {
         </header>
         <main className="flex-1 overflow-y-auto"><Outlet /></main>
       </div>
+
+      {showChangePwd && <ChangePasswordModal onClose={() => setShowChangePwd(false)} />}
     </div>
   );
 }

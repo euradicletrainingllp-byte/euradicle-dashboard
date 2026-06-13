@@ -143,6 +143,31 @@ router.patch('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── POST /users/:id/reset-password (Super Admin / Mini Super Admin only) ─────
+router.post('/:id/reset-password', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { new_password } = req.body;
+
+    if (!new_password) return res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'new_password is required' } });
+    if (new_password.length < 8) return res.status(400).json({ error: { code: 'WEAK_PASSWORD', message: 'Password must be at least 8 characters' } });
+
+    const { data: target, error } = await supabase.from('users').select('id, role').eq('id', id).is('deleted_at', null).single();
+    if (error || !target) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
+
+    // Mini Super Admin cannot reset another Super Admin's password
+    if (req.user.role === ROLES.MINI_SUPER_ADMIN && target.role === ROLES.SUPER_ADMIN) {
+      return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Cannot reset a Super Admin password' } });
+    }
+
+    const hash = await bcrypt.hash(new_password, 12);
+    await supabase.from('users').update({ password_hash: hash, updated_at: new Date().toISOString() }).eq('id', id);
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'user.password_reset_by_admin', entityType: 'user', entityId: id, req });
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) { next(err); }
+});
+
 // ── POST /users/:id/deactivate ───────────────────────────────────────────────
 router.post('/:id/deactivate', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
   try {

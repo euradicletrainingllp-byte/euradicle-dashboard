@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Building2, Users, GraduationCap,
   BookOpen, FileText, Bell, Settings, LogOut,
-  ChevronLeft, ChevronRight, Zap, Menu,
+  ChevronLeft, ChevronRight, Zap, Menu, KeyRound,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../lib/api';
+import { ChangePasswordModal } from '../ChangePasswordModal';
 
 const navItems = [
   { to: '/admin',               icon: LayoutDashboard, label: 'Dashboard',     end: true },
@@ -24,6 +25,7 @@ const SIDEBAR_BORDER = 'rgba(170,120,166,0.12)';
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showChangePwd, setShowChangePwd] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -79,9 +81,12 @@ export default function AdminLayout() {
 
       {/* Bottom */}
       <div className="p-3 space-y-1" style={{ borderTop: `1px solid ${SIDEBAR_BORDER}` }}>
-        <button className={`nav-item w-full ${collapsed ? 'justify-center px-3' : ''}`} title={collapsed ? 'Settings' : undefined}>
-          <Settings size={20} className="flex-shrink-0" />
-          {!collapsed && <span className="text-sm">Settings</span>}
+        <button
+          onClick={() => setShowChangePwd(true)}
+          className={`nav-item w-full ${collapsed ? 'justify-center px-3' : ''}`}
+          title={collapsed ? 'Change Password' : undefined}>
+          <KeyRound size={20} className="flex-shrink-0" />
+          {!collapsed && <span className="text-sm">Change Password</span>}
         </button>
         <button onClick={handleLogout}
           className={`nav-item w-full ${collapsed ? 'justify-center px-3' : ''}`}
@@ -196,6 +201,8 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {showChangePwd && <ChangePasswordModal onClose={() => setShowChangePwd(false)} />}
     </div>
   );
 }

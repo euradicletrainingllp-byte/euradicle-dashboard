@@ -158,6 +158,41 @@ router.post('/reset-password', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── POST /auth/change-password ───────────────────────────────────────────────
+// Any authenticated user: verify current password, then set new one
+router.post('/change-password', authenticate, async (req, res, next) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'current_password and new_password are required' } });
+    }
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: { code: 'WEAK_PASSWORD', message: 'New password must be at least 8 characters' } });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, password_hash, role')
+      .eq('id', req.user.id)
+      .is('deleted_at', null)
+      .single();
+    if (error || !user) return res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+
+    const ok = await bcrypt.compare(current_password, user.password_hash || '');
+    if (!ok) return res.status(401).json({ error: { code: 'WRONG_PASSWORD', message: 'Current password is incorrect' } });
+
+    if (new_password === current_password) {
+      return res.status(400).json({ error: { code: 'SAME_PASSWORD', message: 'New password must differ from current password' } });
+    }
+
+    const hash = await bcrypt.hash(new_password, 12);
+    await supabase.from('users').update({ password_hash: hash, status: 'active', updated_at: new Date().toISOString() }).eq('id', user.id);
+    await writeAuditLog({ actorId: user.id, actorRole: user.role, actionType: 'user.password_changed', entityType: 'user', entityId: user.id, req });
+
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (err) { next(err); }
+});
+
 // ── GET /auth/me ─────────────────────────────────────────────────────────────
 router.get('/me', authenticate, async (req, res, next) => {
   try {
