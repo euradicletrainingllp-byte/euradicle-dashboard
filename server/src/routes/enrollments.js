@@ -16,20 +16,31 @@ router.get('/:cohortId/enrollments', async (req, res, next) => {
 
     if (!isAdmin && !isOrgAdmin) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
 
-    // Verify ORG_ADMIN owns this cohort
     if (isOrgAdmin) {
       const { data: cohort } = await supabase.from('cohorts').select('org_id').eq('id', cohortId).single();
       if (!cohort || cohort.org_id !== req.user.org_id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
     }
 
-    const { data, error } = await supabase
+    const { data: enrollments, error } = await supabase
       .from('enrollments')
-      .select(`*,users!enrollments_participant_id_fkey(id,name,display_name,photo_url,designation,department,email,status,last_login_at)`)
+      .select('id,cohort_id,participant_id,enrolled_by,enrolled_at,status,withdrawn_at,withdrawn_by')
       .eq('cohort_id', cohortId)
       .eq('status', 'active')
       .order('enrolled_at', { ascending: false });
 
     if (error) throw error;
+
+    const pids = (enrollments || []).map(e => e.participant_id);
+    let userMap = {};
+    if (pids.length) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('id,name,display_name,photo_url,designation,department,email,status,last_login_at')
+        .in('id', pids);
+      (users || []).forEach(u => { userMap[u.id] = u; });
+    }
+
+    const data = (enrollments || []).map(e => ({ ...e, users: userMap[e.participant_id] || null }));
     res.json({ data });
   } catch (err) { next(err); }
 });
@@ -41,21 +52,17 @@ router.post('/:cohortId/enrollments', async (req, res, next) => {
     const { participant_id } = req.body;
     if (!participant_id) return res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'participant_id required' } });
 
-    // Check cohort
     const { data: cohort } = await supabase.from('cohorts').select('status,enrollment_capacity,org_id').eq('id', cohortId).single();
     if (!cohort) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Cohort not found' } });
 
-    // BR-03: Only draft or active cohorts
     if (!['draft', 'active'].includes(cohort.status)) {
       return res.status(400).json({ error: { code: 'COHORT_NOT_ENROLLABLE', message: 'Cannot enroll in completed or archived cohort' } });
     }
 
-    // Org admin check
     if (req.user.role === ROLES.ORG_ADMIN && cohort.org_id !== req.user.org_id) {
       return res.status(403).json({ error: { code: 'FORBIDDEN' } });
     }
 
-    // Verify participant
     const { data: participant } = await supabase.from('users').select('role,org_id,status').eq('id', participant_id).single();
     if (!participant || participant.role !== ROLES.PARTICIPANT) {
       return res.status(400).json({ error: { code: 'INVALID_PARTICIPANT', message: 'User is not a participant' } });
@@ -64,7 +71,6 @@ router.post('/:cohortId/enrollments', async (req, res, next) => {
       return res.status(400).json({ error: { code: 'PARTICIPANT_INACTIVE', message: 'Participant account is inactive' } });
     }
 
-    // BR-04: Capacity check
     if (cohort.enrollment_capacity) {
       const { count } = await supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('cohort_id', cohortId).eq('status', 'active');
       if (count >= cohort.enrollment_capacity) {
@@ -72,7 +78,6 @@ router.post('/:cohortId/enrollments', async (req, res, next) => {
       }
     }
 
-    // BR-02: Duplicate check
     const { data: dup } = await supabase.from('enrollments').select('id').eq('cohort_id', cohortId).eq('participant_id', participant_id).single();
     if (dup) return res.status(409).json({ error: { code: 'DUPLICATE_ENROLLMENT', message: 'Participant already enrolled' } });
 
@@ -96,7 +101,6 @@ router.post('/:cohortId/enrollments/bulk', async (req, res, next) => {
       return res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'participant_ids array required' } });
     }
 
-    // ORG_ADMIN must own the cohort
     if (req.user.role === ROLES.ORG_ADMIN) {
       const { data: cohort } = await supabase.from('cohorts').select('org_id').eq('id', cohortId).single();
       if (!cohort || cohort.org_id !== req.user.org_id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
@@ -107,7 +111,6 @@ router.post('/:cohortId/enrollments/bulk', async (req, res, next) => {
     const results = { enrolled: 0, failed: 0, errors: [] };
     for (const pid of participant_ids) {
       try {
-        // Re-activate if previously withdrawn, else insert
         const { data: existing } = await supabase.from('enrollments').select('id,status').eq('cohort_id', cohortId).eq('participant_id', pid).single();
         if (existing) {
           if (existing.status === 'active') {
@@ -115,7 +118,6 @@ router.post('/:cohortId/enrollments/bulk', async (req, res, next) => {
             results.errors.push({ participant_id: pid, error: 'Already enrolled' });
             continue;
           }
-          // Re-activate withdrawn enrollment
           await supabase.from('enrollments').update({ status: 'active', enrolled_by: req.user.id, enrolled_at: new Date().toISOString(), withdrawn_at: null, withdrawn_by: null }).eq('id', existing.id);
         } else {
           await supabase.from('enrollments').insert({ id: uuidv4(), cohort_id: cohortId, participant_id: pid, enrolled_by: req.user.id, status: 'active' });
@@ -127,7 +129,7 @@ router.post('/:cohortId/enrollments/bulk', async (req, res, next) => {
       }
     }
 
-        await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'enrollment.bulk_imported', entityType: 'enrollment', entityId: cohortId, afterState: { count: results.enrolled }, req });
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'enrollment.bulk_imported', entityType: 'enrollment', entityId: cohortId, afterState: { count: results.enrolled }, req });
     res.json(results);
   } catch (err) { next(err); }
 });
@@ -137,7 +139,6 @@ router.delete('/:cohortId/enrollments/:enrollmentId', async (req, res, next) => 
   try {
     const { cohortId, enrollmentId } = req.params;
 
-    // ORG_ADMIN must own the cohort
     if (req.user.role === ROLES.ORG_ADMIN) {
       const { data: cohort } = await supabase.from('cohorts').select('org_id').eq('id', cohortId).single();
       if (!cohort || cohort.org_id !== req.user.org_id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });

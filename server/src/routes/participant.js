@@ -15,14 +15,45 @@ function requireParticipant(req, res, next) {
 // ── GET /participant/cohorts ─────────────────────────────────────────────────
 router.get('/cohorts', requireParticipant, async (req, res, next) => {
   try {
-    const { data, error } = await supabase
+    // Step 1: active enrollments for this participant
+    const { data: enrollments, error } = await supabase
       .from('enrollments')
-      .select('id,enrolled_at,cohorts(id,name,cohort_code,program_type,status,start_date,end_date,enrollment_capacity,organizations(id,name,display_name))')
+      .select('id,enrolled_at,cohort_id')
       .eq('participant_id', req.user.id)
       .eq('status', 'active');
     if (error) throw error;
-    const cohorts = (data || []).map(e => ({ ...e.cohorts, enrollment_id: e.id, enrolled_at: e.enrolled_at }));
-    res.json({ data: cohorts });
+
+    // Step 2: fetch cohort + org details
+    const cohortIds = (enrollments || []).map(e => e.cohort_id);
+    let cohortMap = {};
+    if (cohortIds.length) {
+      const { data: cohorts } = await supabase
+        .from('cohorts')
+        .select('id,name,cohort_code,program_type,status,start_date,end_date,enrollment_capacity,org_id')
+        .in('id', cohortIds);
+
+      const orgIds = [...new Set((cohorts || []).map(c => c.org_id).filter(Boolean))];
+      let orgMap = {};
+      if (orgIds.length) {
+        const { data: orgs } = await supabase
+          .from('organizations')
+          .select('id,name,display_name')
+          .in('id', orgIds);
+        (orgs || []).forEach(o => { orgMap[o.id] = o; });
+      }
+
+      (cohorts || []).forEach(c => {
+        cohortMap[c.id] = { ...c, organizations: orgMap[c.org_id] || null };
+      });
+    }
+
+    const data = (enrollments || []).map(e => ({
+      ...cohortMap[e.cohort_id],
+      enrollment_id: e.id,
+      enrolled_at: e.enrolled_at,
+    })).filter(c => c.id); // drop any where cohort not found
+
+    res.json({ data });
   } catch (err) { next(err); }
 });
 
@@ -148,9 +179,11 @@ router.patch('/responses/:respId', requireParticipant, async (req, res, next) =>
 
     // Confirm ownership via enrollment
     const { data: resp } = await supabase.from('assessment_responses')
-      .select('id,status,enrollment_id,enrollments!assessment_responses_enrollment_id_fkey(participant_id)')
+      .select('id,status,enrollment_id')
       .eq('id', respId).single();
-    if (!resp || resp.enrollments?.participant_id !== req.user.id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
+    if (!resp) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
+    const { data: enrCheck } = await supabase.from('enrollments').select('participant_id').eq('id', resp.enrollment_id).single();
+    if (!enrCheck || enrCheck.participant_id !== req.user.id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
     if (resp.status !== 'in_progress') return res.status(400).json({ error: { message: 'Response already submitted' } });
 
     const { data, error } = await supabase.from('assessment_responses')
@@ -166,9 +199,11 @@ router.post('/responses/:respId/submit', requireParticipant, async (req, res, ne
     const { respId } = req.params;
 
     const { data: resp } = await supabase.from('assessment_responses')
-      .select('id,status,enrollment_id,answers,assignment_id,enrollments!assessment_responses_enrollment_id_fkey(participant_id),assessment_assignments(assessments(sections))')
+      .select('id,status,enrollment_id,answers,assignment_id,assessment_assignments(assessments(sections))')
       .eq('id', respId).single();
-    if (!resp || resp.enrollments?.participant_id !== req.user.id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
+    if (!resp) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
+    const { data: enrCheck } = await supabase.from('enrollments').select('participant_id').eq('id', resp.enrollment_id).single();
+    if (!enrCheck || enrCheck.participant_id !== req.user.id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
     if (resp.status !== 'in_progress') return res.status(400).json({ error: { message: 'Already submitted' } });
 
     // Auto-score MCQ answers

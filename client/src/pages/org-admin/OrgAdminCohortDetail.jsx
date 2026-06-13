@@ -152,10 +152,11 @@ export default function OrgAdminCohortDetail() {
     queryFn: () => api.get(`/cohorts/${id}`).then(r => r.data.data),
   });
 
-  const { data: participants = [], isLoading: loadingP } = useQuery({
+  const { data: participants = [], isLoading: loadingP, isError: participantsError } = useQuery({
     queryKey: ['org-cohort-participants', id],
     queryFn: () => api.get(`/org-admin/cohorts/${id}/participants`).then(r => r.data.data),
     enabled: tab === 'Participants',
+    retry: 1,
   });
 
   const { data: journey, isLoading: loadingJ } = useQuery({
@@ -303,6 +304,11 @@ export default function OrgAdminCohortDetail() {
           {loadingP ? (
             <div className="space-y-2">
               {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />)}
+            </div>
+          ) : participantsError ? (
+            <div className="text-center py-10 flex flex-col items-center gap-2" style={{ color: '#e05065' }}>
+              <AlertCircle size={28} className="opacity-60" />
+              <p className="text-sm">Failed to load participants. Please restart the server and refresh.</p>
             </div>
           ) : participants.length === 0 ? (
             <div className="text-center py-10" style={{ color: '#7060a0' }}>

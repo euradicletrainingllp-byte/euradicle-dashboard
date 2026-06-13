@@ -730,10 +730,11 @@ export default function CohortDetailPage() {
   const [enrollSearch, setEnrollSearch] = useState('');
   const [showEnrollModal, setShowEnrollModal] = useState(false);
 
-  const { data: enrollments, isLoading: loadingEnrollments } = useQuery({
+  const { data: enrollments, isLoading: loadingEnrollments, isError: enrollmentsError } = useQuery({
     queryKey: ['cohort-enrollments', id],
     queryFn: () => api.get(`/cohorts/${id}/enrollments`).then(r => r.data.data),
     enabled: tab === 'Participants',
+    retry: 1,
   });
 
   const { data: allParticipants } = useQuery({
@@ -920,6 +921,11 @@ export default function CohortDetailPage() {
 
           {loadingEnrollments ? (
             <div className="text-center py-10" style={{ color: '#5a4870' }}>Loading…</div>
+          ) : enrollmentsError ? (
+            <div className="text-center py-10 flex flex-col items-center gap-2" style={{ color: '#e05065' }}>
+              <AlertCircle size={28} className="opacity-60" />
+              <p className="text-sm">Failed to load participants. Restart the server and refresh.</p>
+            </div>
           ) : !enrollments?.length ? (
             <div className="text-center py-12" style={{ color: '#5a4870' }}>
               <Users size={40} className="mx-auto mb-3 opacity-20" />
