@@ -33,4 +33,47 @@ router.post('/', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (re
   } catch (err) { next(err); }
 });
 
+// ── GET /content/:id ──────────────────────────────────────────────────────────
+router.get('/:id', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('content_items').select('*').eq('id', req.params.id).is('deleted_at', null).single();
+    if (error || !data) return res.status(404).json({ error: { code: 'NOT_FOUND' } });
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
+// ── PATCH /content/:id ────────────────────────────────────────────────────────
+router.patch('/:id', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    delete updates.id; delete updates.created_by; delete updates.created_at;
+    const { data, error } = await supabase.from('content_items').update(updates).eq('id', id).is('deleted_at', null).select().single();
+    if (error) throw error;
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'content_item.updated', entityType: 'content_item', entityId: id, req });
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
+// ── POST /content/:id/publish ─────────────────────────────────────────────────
+router.post('/:id/publish', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await supabase.from('content_items').update({ library_status: 'published', updated_at: new Date().toISOString() }).eq('id', id);
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'content_item.published', entityType: 'content_item', entityId: id, req });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ── DELETE /content/:id (soft-delete) ────────────────────────────────────────
+router.delete('/:id', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase.from('content_items').update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'content_item.deleted', entityType: 'content_item', entityId: id, req });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

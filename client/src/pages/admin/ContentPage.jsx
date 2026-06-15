@@ -6,7 +6,7 @@ import {
   Plus, Search, BookOpen, Video, FileText, Link as LinkIcon,
   Headphones, Layers, Package, Edit2, Trash2, X, Check, AlertCircle,
   Eye, EyeOff, Tag, Clock, ChevronDown, ChevronUp, Star, Globe,
-  ExternalLink, Share2, Building2,
+  ExternalLink, Share2, Building2, FileEdit, PlusCircle, Columns,
 } from 'lucide-react';
 import api from '../../lib/api';
 
@@ -75,7 +75,7 @@ function ContentModal({ item, onClose }) {
   const [type, setType]         = useState(item?.content_type || 'article');
   const [title, setTitle]       = useState(item?.title || '');
   const [desc, setDesc]         = useState(item?.description || '');
-  const [body, setBody]         = useState(item?.rich_body || '');
+  const [body, setBody]         = useState(item?.rich_text_body || '');
   const [fileUrl, setFileUrl]   = useState(item?.file_url || '');
   const [extUrl, setExtUrl]     = useState(item?.external_url || '');
   const [minutes, setMinutes]   = useState(item?.estimated_minutes || '');
@@ -85,6 +85,14 @@ function ContentModal({ item, onClose }) {
   const [tagsProg, setTagsProg] = useState(item?.tags_program_type || []);
   const [showTags, setShowTags] = useState(false);
   const [error, setError]       = useState('');
+
+  // Multi-page mode (article, toolkit, case_study, reflection_prompt)
+  const existingPages = item?.pages?.length ? item.pages : null;
+  const [usePages, setUsePages] = useState(!!existingPages);
+  const [pages, setPages]       = useState(existingPages || [{ id: 1, title: 'Page 1', body: '' }]);
+  const addPage    = () => setPages(p => [...p, { id: Date.now(), title: `Page ${p.length + 1}`, body: '' }]);
+  const removePage = (idx) => setPages(p => p.filter((_, i) => i !== idx));
+  const updatePage = (idx, field, val) => setPages(p => p.map((pg, i) => i === idx ? { ...pg, [field]: val } : pg));
 
   const save = useMutation({
     mutationFn: (payload) => isEdit
@@ -101,7 +109,8 @@ function ContentModal({ item, onClose }) {
       content_type: type,
       title: title.trim(),
       description: desc.trim() || null,
-      rich_body: body.trim() || null,
+      rich_text_body: (!usePages && needsBody) ? body.trim() || null : null,
+      pages: usePages ? pages.map(p => ({ ...p, title: p.title.trim(), body: p.body.trim() })) : [],
       file_url: fileUrl.trim() || null,
       external_url: extUrl.trim() || null,
       estimated_minutes: minutes ? parseInt(minutes) : null,
@@ -113,9 +122,10 @@ function ContentModal({ item, onClose }) {
   };
 
   const needsUrl = ['external_link'].includes(type);
-  const needsFile = ['presentation', 'toolkit', 'audio'].includes(type);
-  const needsBody = ['article', 'reflection_prompt', 'case_study'].includes(type);
+  const needsFile = ['presentation', 'audio'].includes(type);
+  const needsBody = ['article', 'reflection_prompt', 'case_study', 'toolkit'].includes(type);
   const needsVideoUrl = ['video'].includes(type);
+  const supportsPages = ['article', 'toolkit', 'case_study', 'reflection_prompt'].includes(type);
 
   return (
     <ModalBackdrop onClose={onClose}>
@@ -168,12 +178,66 @@ function ContentModal({ item, onClose }) {
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
           </div>
 
-          {(needsBody) && (
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Content Body</label>
-              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Article content, case study text, or reflection prompt…" rows={5}
-                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+          {needsBody && (
+            <div className="space-y-3">
+              {supportsPages && (
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setUsePages(false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                    style={{ background: !usePages ? 'rgba(170,120,166,0.2)' : 'rgba(255,255,255,0.03)', color: !usePages ? '#c8a0c4' : '#6a5880', border: `1px solid ${!usePages ? 'rgba(170,120,166,0.4)' : 'rgba(170,120,166,0.12)'}` }}>
+                    <FileEdit size={12} /> Single Body
+                  </button>
+                  <button type="button" onClick={() => setUsePages(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                    style={{ background: usePages ? 'rgba(100,200,180,0.15)' : 'rgba(255,255,255,0.03)', color: usePages ? '#64c8b4' : '#6a5880', border: `1px solid ${usePages ? 'rgba(100,200,180,0.35)' : 'rgba(170,120,166,0.12)'}` }}>
+                    <Columns size={12} /> Multi-Page
+                  </button>
+                  {usePages && <span className="text-xs" style={{ color: '#5a4870' }}>Participants navigate pages in-platform</span>}
+                </div>
+              )}
+
+              {!usePages ? (
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Content Body</label>
+                  <textarea value={body} onChange={e => setBody(e.target.value)}
+                    placeholder="Article content, case study text, or reflection prompt…" rows={5}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pages.map((pg, idx) => (
+                    <div key={pg.id} className="rounded-xl p-4 space-y-2"
+                      style={{ background: 'rgba(100,200,180,0.05)', border: '1px solid rgba(100,200,180,0.15)' }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(100,200,180,0.12)', color: '#64c8b4' }}>Page {idx + 1}</span>
+                        <input value={pg.title} onChange={e => updatePage(idx, 'title', e.target.value)}
+                          placeholder="Page title…"
+                          className="flex-1 px-2 py-1 rounded-lg text-xs outline-none"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: '#f0e8fc' }} />
+                        {pages.length > 1 && (
+                          <button type="button" onClick={() => removePage(idx)}
+                            className="p-1 rounded" style={{ color: '#e05065' }}>
+                            <X size={13} />
+                          </button>
+                        )}
+                      </div>
+                      <textarea value={pg.body} onChange={e => updatePage(idx, 'body', e.target.value)}
+                        placeholder="Page content…" rows={4}
+                        className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: '#f0e8fc' }} />
+                    </div>
+                  ))}
+                  <button type="button" onClick={addPage}
+                    className="flex items-center gap-1.5 text-xs font-semibold transition-colors"
+                    style={{ color: '#64c8b4' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#90dfd4'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#64c8b4'}>
+                    <PlusCircle size={13} /> Add Page
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

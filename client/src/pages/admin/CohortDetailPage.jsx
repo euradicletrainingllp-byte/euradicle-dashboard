@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Edit2, Save, X, Video, BookOpen, FileText,
   Layers, MapPin, Clock, Link as LinkIcon, ChevronDown, ChevronUp,
   Package, Search, Building2, AlertCircle, Check, Brain, Target,
-  ExternalLink, Globe, Headphones, Star, Sliders,
+  ExternalLink, Globe, Headphones, Star, Sliders, WifiOff, UserPlus,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import api from '../../lib/api';
@@ -65,12 +65,20 @@ function FLabel({ children, required }) {
   );
 }
 
+const STATUS_TRANSITIONS = {
+  draft:     ['draft', 'active'],
+  active:    ['active', 'completed', 'draft'],
+  completed: ['completed', 'active'],
+  archived:  ['archived'],
+};
+
 function EditCohortModal({ cohort, onClose }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
     name:                     cohort.name                     || '',
     org_id:                   cohort.org_id                   || '',
     program_type:             cohort.program_type             || 'leadership_dev',
+    status:                   cohort.status                   || 'draft',
     start_date:               cohort.start_date?.slice(0,10)  || '',
     end_date:                 cohort.end_date?.slice(0,10)    || '',
     enrollment_capacity:      cohort.enrollment_capacity?.toString() || '',
@@ -105,6 +113,7 @@ function EditCohortModal({ cohort, onClose }) {
       name: form.name.trim(),
       org_id: form.org_id,
       program_type: form.program_type,
+      status: form.status,
       start_date: form.start_date || undefined,
       end_date: form.end_date || undefined,
       enrollment_capacity: form.enrollment_capacity ? parseInt(form.enrollment_capacity) : undefined,
@@ -155,10 +164,19 @@ function EditCohortModal({ cohort, onClose }) {
 
           <div><FLabel required>Cohort Name</FLabel><InputEl value={form.name} onChange={e => set('name', e.target.value)} placeholder="Cohort name" /></div>
 
-          <div><FLabel>Program Type</FLabel>
-            <SelectEl value={form.program_type} onChange={e => set('program_type', e.target.value)}>
-              {PROGRAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </SelectEl>
+          <div className="grid grid-cols-2 gap-3">
+            <div><FLabel>Program Type</FLabel>
+              <SelectEl value={form.program_type} onChange={e => set('program_type', e.target.value)}>
+                {PROGRAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </SelectEl>
+            </div>
+            <div><FLabel>Status</FLabel>
+              <SelectEl value={form.status} onChange={e => set('status', e.target.value)}>
+                {(STATUS_TRANSITIONS[cohort?.status || 'draft'] || ['draft']).map(s => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </SelectEl>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -198,13 +216,113 @@ function EditCohortModal({ cohort, onClose }) {
   );
 }
 
+// ── Assessment Picker ─────────────────────────────────────────────────────────
+function AssessmentPicker({ value, onChange }) {
+  const [search, setSearch] = useState('');
+
+  const { data: asmtData, isLoading } = useQuery({
+    queryKey: ['assessment-picker', search],
+    queryFn: () => api.get('/assessments', { params: { search, limit: 50 } }).then(r => r.data),
+    staleTime: 30_000,
+  });
+
+  const items = asmtData?.data || [];
+  const selectedItem = value ? items.find(i => i.id === value) : null;
+
+  const ASMT_TYPE_COLORS = {
+    pre_program: '#7c3aed', post_program: '#059669', mid_program: '#d97706',
+    '360_feedback': '#2563eb', competency: '#db2777', psychometric: '#0891b2',
+    knowledge_check: '#65a30d', custom: '#6b7280',
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Selected indicator */}
+      {value && selectedItem && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+          style={{ background: 'rgba(200,150,80,0.1)', border: '1px solid rgba(200,150,80,0.25)' }}>
+          <Brain size={13} style={{ color: '#c89650' }} />
+          <span className="text-xs font-medium flex-1 truncate" style={{ color: '#f0c070' }}>
+            {selectedItem.title}
+          </span>
+          <span className="text-xs px-1.5 py-0.5 rounded-full capitalize"
+            style={{ background: `${ASMT_TYPE_COLORS[selectedItem.assessment_type] || '#6b7280'}22`, color: ASMT_TYPE_COLORS[selectedItem.assessment_type] || '#6b7280' }}>
+            {selectedItem.assessment_type?.replace(/_/g, ' ')}
+          </span>
+          <button onClick={() => onChange('')}
+            className="transition-colors"
+            style={{ color: '#5a7090' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
+            onMouseLeave={e => e.currentTarget.style.color = '#5a7090'}>
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search assessment library…"
+          className="w-full pl-8 pr-3 py-2 rounded-xl text-xs outline-none"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+      </div>
+
+      <div className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid rgba(170,120,166,0.14)', maxHeight: '200px', overflowY: 'auto' }}>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>
+            {search ? 'No matches' : 'No assessments in library yet'}
+          </div>
+        ) : (
+          items.map(item => (
+            <button key={item.id} onClick={() => onChange(item.id === value ? '' : item.id)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all"
+              style={{
+                background: item.id === value ? 'rgba(200,150,80,0.1)' : 'transparent',
+                borderBottom: '1px solid rgba(170,120,166,0.08)',
+              }}
+              onMouseEnter={e => { if (item.id !== value) e.currentTarget.style.background = 'rgba(170,120,166,0.06)'; }}
+              onMouseLeave={e => { if (item.id !== value) e.currentTarget.style.background = 'transparent'; }}>
+              <div className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-xs"
+                style={{ background: 'rgba(200,150,80,0.15)', color: '#c89650' }}>
+                <Brain size={11} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-medium truncate" style={{ color: item.id === value ? '#f0c070' : '#d0c8e0' }}>
+                    {item.title}
+                  </p>
+                  <span className="text-xs px-1 py-0 rounded flex-shrink-0"
+                    style={{ background: item.library_status === 'published' ? 'rgba(100,200,120,0.12)' : 'rgba(200,160,60,0.12)', color: item.library_status === 'published' ? '#64c878' : '#c8a040', fontSize: '10px' }}>
+                    {item.library_status === 'published' ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+                <p className="text-xs truncate capitalize" style={{ color: '#5a4870' }}>
+                  {item.assessment_type?.replace(/_/g, ' ')}
+                  {item.sections?.length ? ` · ${item.sections.length} section(s)` : ''}
+                  {item.timer_minutes ? ` · ${item.timer_minutes}m` : ''}
+                </p>
+              </div>
+              {item.id === value && <CheckCircle size={13} style={{ color: '#c89650', flexShrink: 0 }} />}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 const INTERVENTION_TYPES = [
   { value: 'pre_work',          label: 'Pre-Work',        icon: BookOpen,    color: '#d0a030', supportsContent: true  },
   { value: 'virtual_session',   label: 'Virtual Session', icon: Video,       color: '#64c878', supportsContent: false },
+  { value: 'offline_session',   label: 'Offline Session', icon: WifiOff,     color: '#c86496', supportsContent: false },
   { value: 'case_study',        label: 'Case Study',      icon: FileText,    color: '#c86464', supportsContent: true  },
   { value: 'study_material',    label: 'Study Material',  icon: BookOpen,    color: '#6496dc', supportsContent: true  },
-  { value: 'reflection',        label: 'Reflection',      icon: Layers,      color: '#aa78a6', supportsContent: true  },
   { value: 'group_activity',    label: 'Group Activity',  icon: Users,       color: '#64c8b4', supportsContent: false },
   { value: 'assessment_window', label: 'Assessment',      icon: CheckCircle, color: '#c89650', supportsContent: false },
   { value: 'custom',            label: 'Custom',          icon: MapPin,      color: '#9080a8', supportsContent: true  },
@@ -247,10 +365,24 @@ const CONTENT_TYPE_MAP = {
 // ── Intervention Form ────────────────────────────────────────────────────────
 const EMPTY_FORM = {
   title: '', intervention_type: 'virtual_session', description: '', facilitator_notes: '',
-  scheduled_date: '', scheduled_time: '', duration_minutes: '',
+  scheduled_date: '', scheduled_time: '', scheduled_end_time: '', duration_minutes: '',
   virtual_session_link: '', virtual_session_platform: '',
-  content_item_id: '', is_mandatory: true, status: 'published',
+  location: '', offline_facilitator: '',
+  participant_groups: [],
+  content_item_id: '', assessment_id: '', is_mandatory: true, status: 'published',
 };
+
+// Helper: compute duration in minutes from two HH:MM strings
+function calcDuration(start, end) {
+  if (!start || !end) return '';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const diff = (eh * 60 + em) - (sh * 60 + sm);
+  return diff > 0 ? String(diff) : '';
+}
+
+// GROUP COLORS for participant groups
+const GROUP_COLORS = ['#64c8b4', '#6496dc', '#c89650', '#aa78a6', '#c86464', '#64c878', '#c86496', '#9080a8'];
 
 // Content item picker sub-component
 function ContentPicker({ value, onChange }) {
@@ -336,12 +468,46 @@ function ContentPicker({ value, onChange }) {
 }
 
 function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) {
-  const [form, setForm] = useState({ ...EMPTY_FORM, ...initial });
+  const [form, setForm] = useState({
+    ...EMPTY_FORM,
+    ...initial,
+    participant_groups: initial.participant_groups || [],
+  });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const selectedType = TYPE_MAP[form.intervention_type] || INTERVENTION_TYPES[0];
   const canHaveContent = selectedType.supportsContent;
+
+  // Auto-compute duration when end time changes
+  useEffect(() => {
+    const dur = calcDuration(form.scheduled_time, form.scheduled_end_time);
+    if (dur) set('duration_minutes', dur);
+  }, [form.scheduled_time, form.scheduled_end_time]);
+
+  // Group helpers
+  const addGroup = useCallback(() => {
+    const idx = form.participant_groups.length;
+    setForm(f => ({
+      ...f,
+      participant_groups: [...f.participant_groups, {
+        id: Date.now(),
+        name: `Group ${idx + 1}`,
+        description: '',
+        color: GROUP_COLORS[idx % GROUP_COLORS.length],
+      }],
+    }));
+  }, [form.participant_groups.length]);
+
+  const updateGroup = (id, key, val) => setForm(f => ({
+    ...f,
+    participant_groups: f.participant_groups.map(g => g.id === id ? { ...g, [key]: val } : g),
+  }));
+
+  const removeGroup = (id) => setForm(f => ({
+    ...f,
+    participant_groups: f.participant_groups.filter(g => g.id !== id),
+  }));
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -382,8 +548,8 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
       </div>
 
-      {/* Date + Time + Duration */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Date + Start Time + End Time + Duration (auto) */}
+      <div className="grid grid-cols-4 gap-3">
         <div>
           <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Date</label>
           <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)}
@@ -391,21 +557,36 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
         </div>
         <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Time</label>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Start Time</label>
           <input type="time" value={form.scheduled_time} onChange={e => set('scheduled_time', e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
         </div>
         <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Duration (min)</label>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>End Time</label>
+          <input type="time" value={form.scheduled_end_time} onChange={e => set('scheduled_end_time', e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
+        </div>
+        <div>
+          <label className="block text-xs mb-1.5 font-medium flex items-center gap-1" style={{ color: '#9080a8' }}>
+            Duration (min)
+            {form.scheduled_time && form.scheduled_end_time && (
+              <span className="text-xs normal-case font-normal" style={{ color: '#64c878' }}>auto</span>
+            )}
+          </label>
           <input type="number" value={form.duration_minutes} onChange={e => set('duration_minutes', e.target.value)}
             placeholder="60"
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+            style={{
+              background: form.scheduled_time && form.scheduled_end_time ? 'rgba(100,200,120,0.06)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${form.scheduled_time && form.scheduled_end_time ? 'rgba(100,200,120,0.25)' : 'rgba(170,120,166,0.2)'}`,
+              color: '#f0e8fc',
+            }} />
         </div>
       </div>
 
-      {/* Virtual session link */}
+      {/* Virtual session fields */}
       {form.intervention_type === 'virtual_session' && (
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
@@ -422,6 +603,102 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
           </div>
+        </div>
+      )}
+
+      {/* Offline session fields */}
+      {form.intervention_type === 'offline_session' && (
+        <div className="rounded-2xl p-4 space-y-3"
+          style={{ background: 'rgba(200,100,150,0.05)', border: '1px solid rgba(200,100,150,0.2)' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <WifiOff size={13} style={{ color: '#c86496' }} />
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#c86496' }}>Offline Session Details</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Venue / Location</label>
+              <input value={form.location} onChange={e => set('location', e.target.value)}
+                placeholder="e.g., ITC Grand Chola, Chennai"
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Facilitator</label>
+              <input value={form.offline_facilitator} onChange={e => set('offline_facilitator', e.target.value)}
+                placeholder="Facilitator name"
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Address / How to reach</label>
+            <textarea value={form.virtual_session_link} onChange={e => set('virtual_session_link', e.target.value)}
+              rows={2} placeholder="Full address, landmark, parking instructions…"
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Group Activity — participant group builder */}
+      {form.intervention_type === 'group_activity' && (
+        <div className="rounded-2xl p-4 space-y-3"
+          style={{ background: 'rgba(100,200,180,0.05)', border: '1px solid rgba(100,200,180,0.2)' }}>
+          <div className="flex items-center gap-2">
+            <Users size={13} style={{ color: '#64c8b4' }} />
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#64c8b4' }}>Participant Groups</span>
+            <span className="ml-auto text-xs" style={{ color: '#5a4870' }}>
+              {form.participant_groups.length} group{form.participant_groups.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {form.participant_groups.length === 0 ? (
+            <p className="text-xs text-center py-3" style={{ color: '#5a4870' }}>
+              No groups yet — add groups below and give each one a name and activity details.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {form.participant_groups.map((group, idx) => (
+                <div key={group.id} className="rounded-xl p-3 space-y-2"
+                  style={{ background: `${group.color}0d`, border: `1px solid ${group.color}35` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                      style={{ background: group.color, color: '#fff' }}>
+                      {idx + 1}
+                    </div>
+                    <input
+                      value={group.name}
+                      onChange={e => updateGroup(group.id, 'name', e.target.value)}
+                      placeholder="Group name"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg text-sm outline-none font-medium"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${group.color}40`, color: '#f0e8fc' }} />
+                    <button onClick={() => removeGroup(group.id)}
+                      className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
+                      style={{ color: '#7060a0' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#e05065'; e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#7060a0'; e.currentTarget.style.background = ''; }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  <textarea
+                    value={group.description}
+                    onChange={e => updateGroup(group.id, 'description', e.target.value)}
+                    rows={2}
+                    placeholder="Activity details, instructions, or goals for this group…"
+                    className="w-full px-2.5 py-2 rounded-lg text-xs outline-none resize-none"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${group.color}25`, color: '#d0c8e0' }} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button onClick={addGroup}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs transition-all"
+            style={{ color: '#64c8b4', border: '1px dashed rgba(100,200,180,0.35)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(100,200,180,0.6)'; e.currentTarget.style.background = 'rgba(100,200,180,0.05)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(100,200,180,0.35)'; e.currentTarget.style.background = ''; }}>
+            <UserPlus size={13} /> Add Group
+          </button>
         </div>
       )}
 
@@ -447,6 +724,27 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* Assessment picker — only for assessment_window type */}
+      {form.intervention_type === 'assessment_window' && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Brain size={13} style={{ color: '#c89650' }} />
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#c89650' }}>
+              Link Assessment from Library
+            </span>
+            {!form.assessment_id && (
+              <span className="text-xs ml-auto" style={{ color: '#7060a0' }}>Optional</span>
+            )}
+          </div>
+          <AssessmentPicker value={form.assessment_id} onChange={v => set('assessment_id', v)} />
+          {form.assessment_id && (
+            <p className="text-xs mt-2" style={{ color: '#7060a0' }}>
+              This assessment will be automatically assigned to all participants in this cohort.
+            </p>
+          )}
         </div>
       )}
 
@@ -509,6 +807,7 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
   const typeInfo = TYPE_MAP[iv.intervention_type] || INTERVENTION_TYPES[INTERVENTION_TYPES.length - 1];
   const Icon = typeInfo.icon;
   const hasContent = iv.content_items;
+  const hasAssessment = iv.assessments;
 
   return (
     <div className="flex items-start gap-3 p-4 rounded-2xl group"
@@ -538,6 +837,18 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
               <Package size={9} /> {iv.content_items.title}
             </span>
           )}
+          {hasAssessment && (
+            <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+              style={{ background: 'rgba(200,150,80,0.12)', color: '#c89650', border: '1px solid rgba(200,150,80,0.25)' }}>
+              <Brain size={9} /> {iv.assessments.title}
+            </span>
+          )}
+          {iv.intervention_type === 'assessment_window' && !hasAssessment && (
+            <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+              style={{ background: 'rgba(170,120,166,0.08)', color: '#7060a0', border: '1px solid rgba(170,120,166,0.15)' }}>
+              <Brain size={9} /> No assessment linked
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-3 mt-1.5 text-xs" style={{ color: '#7060a0' }}>
@@ -546,14 +857,30 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
               <Calendar size={11} />
               {format(parseISO(iv.scheduled_date), 'MMM d, yyyy')}
               {iv.scheduled_time ? ` · ${iv.scheduled_time.slice(0, 5)}` : ''}
+              {iv.scheduled_end_time ? ` – ${iv.scheduled_end_time.slice(0, 5)}` : ''}
             </span>
           )}
           {iv.duration_minutes && (
             <span className="flex items-center gap-1"><Clock size={11} />{iv.duration_minutes}m</span>
           )}
-          {iv.virtual_session_link && (
+          {iv.intervention_type === 'virtual_session' && iv.virtual_session_link && (
             <span className="flex items-center gap-1 truncate max-w-48" title={iv.virtual_session_link}>
               <LinkIcon size={11} />{iv.virtual_session_platform || 'Session link'}
+            </span>
+          )}
+          {iv.intervention_type === 'offline_session' && iv.location && (
+            <span className="flex items-center gap-1 truncate max-w-64">
+              <MapPin size={11} />{iv.location}
+            </span>
+          )}
+          {iv.intervention_type === 'offline_session' && iv.offline_facilitator && (
+            <span className="flex items-center gap-1">
+              <Users size={11} />{iv.offline_facilitator}
+            </span>
+          )}
+          {iv.intervention_type === 'group_activity' && iv.participant_groups?.length > 0 && (
+            <span className="flex items-center gap-1">
+              <Users size={11} />{iv.participant_groups.length} group{iv.participant_groups.length !== 1 ? 's' : ''}
             </span>
           )}
           {iv.is_mandatory && <span style={{ color: '#c89650' }}>Required</span>}
@@ -585,6 +912,104 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
 }
 
 // ── Enroll Participants Modal ─────────────────────────────────────────────────
+// ── Assign Library Modal (reusable for assessments + content) ────────────────
+function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabel, getSubLabel, onAssign, onClose, loading, error, accentColor, accentBg }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: fetchFn,
+    staleTime: 30_000,
+  });
+
+  const filtered = items.filter(item => {
+    if (alreadyAssigned.has(item.id)) return false;
+    const q = search.toLowerCase();
+    return !q || getLabel(item).toLowerCase().includes(q);
+  });
+
+  return (
+    <ModalBackdrop onClose={onClose}>
+      <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
+        className="w-full max-w-lg rounded-2xl p-6"
+        style={{ background: '#140e24', border: '1px solid rgba(170,120,166,0.25)', boxShadow: '0 32px 80px rgba(0,0,0,0.65)' }}
+        onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold" style={{ color: '#f0e8fc' }}>{title}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
+            onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="relative mb-3">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}
+            onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.2)'} />
+        </div>
+
+        <div className="overflow-y-auto space-y-1 mb-4" style={{ maxHeight: '320px' }}>
+          {isLoading ? (
+            <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>Loading…</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>
+              {items.length === 0 ? 'No published items found' : 'All items already assigned'}
+            </p>
+          ) : filtered.map(item => {
+            const isSel = selected === item.id;
+            return (
+              <div key={item.id} onClick={() => setSelected(isSel ? null : item.id)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors"
+                style={{ background: isSel ? accentBg : 'transparent', border: `1px solid ${isSel ? accentColor + '50' : 'transparent'}` }}
+                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ background: isSel ? accentBg : 'rgba(170,120,166,0.15)', color: isSel ? accentColor : '#aa78a6' }}>
+                  {isSel ? <Check size={13} /> : getLabel(item)[0]?.toUpperCase() || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{getLabel(item)}</p>
+                  <p className="text-xs truncate capitalize" style={{ color: '#7060a0' }}>{getSubLabel(item)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {error && (
+          <div className="mb-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2"
+            style={{ background: 'rgba(224,80,101,0.12)', border: '1px solid rgba(224,80,101,0.25)', color: '#e05065' }}>
+            <AlertCircle size={14} className="flex-shrink-0" />{error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(170,120,166,0.12)' }}>
+          <p className="text-sm" style={{ color: '#7060a0' }}>
+            {selected ? '1 selected' : 'Click to select'}
+          </p>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: '#9080a8' }}>Cancel</button>
+            <button
+              disabled={!selected || loading}
+              onClick={() => selected && onAssign(selected)}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+              style={{ background: selected ? accentBg : 'rgba(255,255,255,0.05)', color: accentColor, border: `1px solid ${accentColor}50` }}>
+              {loading ? 'Assigning…' : 'Assign'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </ModalBackdrop>
+  );
+}
+
 function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, error }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
@@ -726,6 +1151,23 @@ export default function CohortDetailPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-content', id] }),
   });
 
+  // ── Assignment modals state ───────────────────────────────────────────────
+  const [showAssignAssessmentModal, setShowAssignAssessmentModal] = useState(false);
+  const [showAssignContentModal, setShowAssignContentModal] = useState(false);
+  const [assignError, setAssignError] = useState('');
+
+  const assignAssessmentMutation = useMutation({
+    mutationFn: (assessment_id) => api.post(`/cohorts/${id}/assessments`, { assessment_id, mandatory: true }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cohort-assessments', id] }); setShowAssignAssessmentModal(false); setAssignError(''); },
+    onError: (err) => setAssignError(err.response?.data?.error?.message || 'Failed to assign assessment'),
+  });
+
+  const assignContentMutation = useMutation({
+    mutationFn: (content_item_id) => api.post(`/cohorts/${id}/content`, { content_item_id, visibility_status: 'published', mandatory: false }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cohort-content', id] }); setShowAssignContentModal(false); setAssignError(''); },
+    onError: (err) => setAssignError(err.response?.data?.error?.message || 'Failed to assign content'),
+  });
+
   // ── Participants tab state ─────────────────────────────────────────────────
   const [enrollSearch, setEnrollSearch] = useState('');
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -768,6 +1210,7 @@ export default function CohortDetailPage() {
     mutationFn: (form) => api.post(`/cohorts/${id}/journey/interventions`, {
       ...form,
       content_item_id: form.content_item_id || null,
+      assessment_id: form.assessment_id || null,
     }).then(r => r.data),
     onSuccess: () => { invalidateJourney(); setShowAddForm(false); },
   });
@@ -776,6 +1219,7 @@ export default function CohortDetailPage() {
     mutationFn: ({ ivId, form }) => api.patch(`/cohorts/${id}/journey/interventions/${ivId}`, {
       ...form,
       content_item_id: form.content_item_id || null,
+      assessment_id: form.assessment_id || null,
     }).then(r => r.data),
     onSuccess: () => { invalidateJourney(); setEditingIntervention(null); },
   });
@@ -802,7 +1246,12 @@ export default function CohortDetailPage() {
     </div>
   );
 
-  const interventions = journey?.interventions || [];
+  const interventions = [...(journey?.interventions || [])].sort((a, b) => {
+    if (!a.scheduled_date && !b.scheduled_date) return 0;
+    if (!a.scheduled_date) return 1;
+    if (!b.scheduled_date) return -1;
+    return new Date(a.scheduled_date) - new Date(b.scheduled_date);
+  });
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 page-enter">
@@ -833,17 +1282,22 @@ export default function CohortDetailPage() {
                 <Rocket size={16} /> {launchMutation.isPending ? 'Launching…' : 'Launch Cohort'}
               </button>
             )}
-            {launchMutation.error && (
-              <p className="text-xs self-center" style={{ color: '#e05065' }}>
-                {launchMutation.error.response?.data?.error?.message || 'Launch failed'}
-              </p>
-            )}
             {cohort?.status === 'active' && (
               <button onClick={() => completeMutation.mutate()}
                 disabled={completeMutation.isPending}
-                className="btn-ghost flex items-center gap-2 text-sm disabled:opacity-50">
-                <CheckCircle size={16} /> Mark Complete
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-medium transition-all disabled:opacity-50"
+                style={{ background: 'rgba(100,200,150,0.12)', color: '#40c980', border: '1px solid rgba(100,200,150,0.3)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,200,150,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,200,150,0.12)'}>
+                <CheckCircle size={16} /> {completeMutation.isPending ? 'Completing…' : 'Mark Complete'}
               </button>
+            )}
+            {(launchMutation.error || completeMutation.error) && (
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs self-center"
+                style={{ background: 'rgba(224,80,101,0.1)', border: '1px solid rgba(224,80,101,0.2)', color: '#e05065' }}>
+                <AlertCircle size={13} />
+                {launchMutation.error?.response?.data?.error?.message || completeMutation.error?.response?.data?.error?.message || 'Action failed'}
+              </div>
             )}
           </div>
         </div>
@@ -1072,7 +1526,7 @@ export default function CohortDetailPage() {
                   ) : (
                     <InterventionRow
                       iv={iv} index={i}
-                      onEdit={(iv) => setEditingIntervention(iv)}
+                      onEdit={(iv) => setEditingIntervention({ ...iv, assessment_id: iv.assessments?.id || iv.assessment_id || '' })}
                       onDelete={(ivId) => {
                         if (window.confirm('Delete this intervention?')) deleteMutation.mutate(ivId);
                       }}
@@ -1104,9 +1558,16 @@ export default function CohortDetailPage() {
             <div className="flex items-center gap-2 mb-5">
               <Brain size={18} style={{ color: '#aa78a6' }} />
               <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Assigned Assessments</h2>
-              <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
                 {assignedAssessments?.length ?? 0}
               </span>
+              <button onClick={() => { setAssignError(''); setShowAssignAssessmentModal(true); }}
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: 'rgba(170,120,166,0.12)', color: '#aa78a6', border: '1px solid rgba(170,120,166,0.25)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(170,120,166,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(170,120,166,0.12)'}>
+                <Plus size={14} /> Assign Assessment
+              </button>
             </div>
             {loadingAsmts ? (
               <div className="text-center py-8" style={{ color: '#5a4870' }}>Loading…</div>
@@ -1157,9 +1618,16 @@ export default function CohortDetailPage() {
             <div className="flex items-center gap-2 mb-5">
               <Target size={18} style={{ color: '#aa78a6' }} />
               <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Assigned Content</h2>
-              <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
                 {assignedContent?.length ?? 0}
               </span>
+              <button onClick={() => { setAssignError(''); setShowAssignContentModal(true); }}
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: 'rgba(100,150,220,0.12)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.25)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,150,220,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,150,220,0.12)'}>
+                <Plus size={14} /> Assign Content
+              </button>
             </div>
             {loadingContent ? (
               <div className="text-center py-8" style={{ color: '#5a4870' }}>Loading…</div>
@@ -1245,6 +1713,46 @@ export default function CohortDetailPage() {
       <AnimatePresence>
         {showEditCohort && cohort && (
           <EditCohortModal cohort={cohort} onClose={() => setShowEditCohort(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Assign Assessment Modal */}
+      <AnimatePresence>
+        {showAssignAssessmentModal && (
+          <AssignLibraryModal
+            title="Assign Assessment"
+            fetchFn={() => api.get('/assessments', { params: { library_status: 'published', limit: 100 } }).then(r => r.data.data || [])}
+            queryKey={['assessments-library-published']}
+            alreadyAssigned={new Set((assignedAssessments || []).map(a => a.assessment_id))}
+            getLabel={a => a.title}
+            getSubLabel={a => `${a.assessment_type?.replace(/_/g,' ')} · ${a.sections?.length ?? 0} sections`}
+            onAssign={(itemId) => assignAssessmentMutation.mutate(itemId)}
+            onClose={() => { setShowAssignAssessmentModal(false); setAssignError(''); }}
+            loading={assignAssessmentMutation.isPending}
+            error={assignError}
+            accentColor="#aa78a6"
+            accentBg="rgba(170,120,166,0.15)"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Assign Content Modal */}
+      <AnimatePresence>
+        {showAssignContentModal && (
+          <AssignLibraryModal
+            title="Assign Content"
+            fetchFn={() => api.get('/content', { params: { library_status: 'published', limit: 100 } }).then(r => r.data.data || [])}
+            queryKey={['content-library-published']}
+            alreadyAssigned={new Set((assignedContent || []).map(c => c.content_item_id))}
+            getLabel={c => c.title}
+            getSubLabel={c => `${c.content_type?.replace(/_/g,' ')}${c.estimated_minutes ? ` · ${c.estimated_minutes} min` : ''}`}
+            onAssign={(itemId) => assignContentMutation.mutate(itemId)}
+            onClose={() => { setShowAssignContentModal(false); setAssignError(''); }}
+            loading={assignContentMutation.isPending}
+            error={assignError}
+            accentColor="#6496dc"
+            accentBg="rgba(100,150,220,0.15)"
+          />
         )}
       </AnimatePresence>
     </div>

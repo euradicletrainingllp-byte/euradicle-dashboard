@@ -156,10 +156,89 @@ function InterventionCard({ iv, index }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// In-platform multi-page content reader
+// ─────────────────────────────────────────────────────────────────────────────
+function PageReader({ pages, onClose }) {
+  const [current, setCurrent] = useState(0);
+  const total = pages.length;
+  const pg = pages[current] || {};
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl overflow-hidden"
+      style={{ background: 'rgba(14,8,24,0.97)', border: '1px solid rgba(170,120,166,0.25)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
+            onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex gap-1">
+            {pages.map((_, i) => (
+              <button key={i} onClick={() => setCurrent(i)}
+                className="h-1.5 rounded-full transition-all"
+                style={{ width: i === current ? '24px' : '8px', background: i === current ? '#aa78a6' : 'rgba(170,120,166,0.2)' }} />
+            ))}
+          </div>
+          <span className="text-xs" style={{ color: '#7060a0' }}>Page {current + 1} of {total}</span>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
+          onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
+          <X size={15} />
+        </button>
+      </div>
+
+      {/* Page content */}
+      <AnimatePresence mode="wait">
+        <motion.div key={current} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }}
+          className="px-6 py-5 space-y-4" style={{ minHeight: '200px' }}>
+          {pg.title && (
+            <h3 className="text-lg font-bold" style={{ color: '#f0e8fc' }}>{pg.title}</h3>
+          )}
+          {pg.body && (
+            <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#c0b8d8' }}>
+              {pg.body}
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Nav footer */}
+      <div className="flex items-center justify-between px-5 py-4"
+        style={{ borderTop: '1px solid rgba(170,120,166,0.1)' }}>
+        <button onClick={() => setCurrent(s => Math.max(0, s - 1))} disabled={current === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30"
+          style={{ background: 'rgba(255,255,255,0.04)', color: '#c8a0c4', border: '1px solid rgba(170,120,166,0.15)' }}>
+          <ChevronLeft size={15} /> Previous
+        </button>
+        {current < total - 1 ? (
+          <button onClick={() => setCurrent(s => Math.min(total - 1, s + 1))}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium btn-primary">
+            Next <ChevronRight size={15} />
+          </button>
+        ) : (
+          <button onClick={onClose}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: 'rgba(64,201,128,0.12)', color: '#40c980', border: '1px solid rgba(64,201,128,0.25)' }}>
+            <Check size={14} /> Done
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Content Tab: level-based sequential content with Mark as Read
 // ─────────────────────────────────────────────────────────────────────────────
 function ContentTab({ cohortId }) {
   const qc = useQueryClient();
+  const [readingItem, setReadingItem] = useState(null); // assignment id being read
 
   const { data, isLoading } = useQuery({
     queryKey: ['participant-content', cohortId],
@@ -196,9 +275,12 @@ function ContentTab({ cohortId }) {
         const Icon = t.icon;
         const isLocked = item.is_locked;
         const isDone = item.is_completed;
+        const hasPages = c.pages?.length > 0;
+        const isReading = readingItem === item.id;
 
         return (
-          <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          <React.Fragment key={item.id}>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             className={`glass-card p-5 transition-all ${isLocked ? 'opacity-40' : ''}`}
             style={{ border: `1px solid ${isDone ? 'rgba(64,201,128,0.2)' : isLocked ? 'rgba(170,120,166,0.06)' : 'rgba(170,120,166,0.12)'}` }}>
@@ -240,8 +322,15 @@ function ContentTab({ cohortId }) {
 
                   {!isLocked && (
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Open/Download links */}
-                      {c.external_url && (
+                      {/* Open/Download/Read links */}
+                      {hasPages && (
+                        <button onClick={() => setReadingItem(isReading ? null : item.id)}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+                          style={{ background: isReading ? `${t.color}25` : `${t.color}12`, color: t.color, border: `1px solid ${t.color}40` }}>
+                          <BookOpen size={12} /> {isReading ? 'Close' : 'Read'}
+                        </button>
+                      )}
+                      {!hasPages && c.external_url && (
                         <a href={c.external_url} target="_blank" rel="noreferrer"
                           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium"
                           style={{ background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}33` }}>
@@ -277,16 +366,25 @@ function ContentTab({ cohortId }) {
                   )}
                 </div>
 
-                {/* Inline body for articles/reflections */}
-                {!isLocked && c.rich_body && (
-                  <div className="mt-4 pt-4 text-sm leading-relaxed"
+                {/* Inline single-body text */}
+                {!isLocked && !hasPages && c.rich_text_body && (
+                  <div className="mt-4 pt-4 text-sm leading-relaxed whitespace-pre-wrap"
                     style={{ borderTop: '1px solid rgba(170,120,166,0.1)', color: '#c0b8d8' }}>
-                    {c.rich_body}
+                    {c.rich_text_body}
                   </div>
                 )}
               </div>
             </div>
           </motion.div>
+
+          {/* Inline multi-page reader */}
+          {isReading && hasPages && (
+            <PageReader pages={c.pages} onClose={() => {
+              setReadingItem(null);
+              if (!isDone) markRead.mutate(item.id);
+            }} />
+          )}
+          </React.Fragment>
         );
       })}
     </div>

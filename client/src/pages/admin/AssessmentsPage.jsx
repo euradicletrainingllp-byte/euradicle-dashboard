@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -259,19 +259,46 @@ const EMPTY_ASMT = {
 function AssessmentModal({ assessment, onClose }) {
   const qc = useQueryClient();
   const isEdit = !!assessment;
+
+  // Fetch full assessment (list query omits sections/instructions/settings)
+  const { data: fullAsmt } = useQuery({
+    queryKey: ['assessment-full', assessment?.id],
+    queryFn: () => api.get(`/assessments/${assessment.id}`).then(r => r.data.data),
+    enabled: isEdit,
+    staleTime: 10_000,
+  });
+
   const [form, setForm] = useState(isEdit ? {
     title: assessment.title || '',
     description: assessment.description || '',
     assessment_type: assessment.assessment_type || 'behavioral',
-    instructions: assessment.instructions || '',
+    instructions: '',
     timer_minutes: assessment.timer_minutes?.toString() || '',
-    max_attempts: assessment.max_attempts?.toString() || '1',
-    allow_save_resume: assessment.allow_save_resume ?? true,
-    shuffle_questions: assessment.shuffle_questions ?? false,
-    show_progress_bar: assessment.show_progress_bar ?? true,
-    sections: assessment.sections || [],
+    max_attempts: '1',
+    allow_save_resume: true,
+    shuffle_questions: false,
+    show_progress_bar: true,
+    sections: [],
   } : { ...EMPTY_ASMT });
   const [error, setError] = useState('');
+
+  // Re-populate form with full data once loaded
+  useEffect(() => {
+    if (fullAsmt) {
+      setForm({
+        title: fullAsmt.title || '',
+        description: fullAsmt.description || '',
+        assessment_type: fullAsmt.assessment_type || 'behavioral',
+        instructions: fullAsmt.instructions || '',
+        timer_minutes: fullAsmt.timer_minutes?.toString() || '',
+        max_attempts: fullAsmt.max_attempts?.toString() || '1',
+        allow_save_resume: fullAsmt.allow_save_resume ?? true,
+        shuffle_questions: fullAsmt.shuffle_questions ?? false,
+        show_progress_bar: fullAsmt.show_progress_bar ?? true,
+        sections: fullAsmt.sections || [],
+      });
+    }
+  }, [fullAsmt]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function addSection() {
@@ -326,7 +353,9 @@ function AssessmentModal({ assessment, onClose }) {
           <div className="flex-1">
             <h2 className="font-bold text-white">{isEdit ? 'Edit Assessment' : 'Create Assessment'}</h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
-              {form.sections.length} section{form.sections.length !== 1 ? 's' : ''} · {totalQs} question{totalQs !== 1 ? 's' : ''}
+              {isEdit && !fullAsmt
+                ? 'Loading…'
+                : `${form.sections.length} section${form.sections.length !== 1 ? 's' : ''} · ${totalQs} question${totalQs !== 1 ? 's' : ''}`}
             </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}

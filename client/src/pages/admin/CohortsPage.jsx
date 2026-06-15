@@ -147,6 +147,13 @@ const EMPTY_COHORT = {
   post_program_access_days: '30',
 };
 
+const STATUS_TRANSITIONS = {
+  draft:     ['draft', 'active'],
+  active:    ['active', 'completed', 'draft'],
+  completed: ['completed', 'active'],
+  archived:  ['archived'],
+};
+
 function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
   const isEdit = mode === 'edit';
   const [form, setForm] = useState(
@@ -155,6 +162,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
           name:                      cohort.name                     || '',
           org_id:                    cohort.org_id                   || '',
           program_type:              cohort.program_type             || 'leadership_development',
+          status:                    cohort.status                   || 'draft',
           start_date:                cohort.start_date?.slice(0, 10) || '',
           end_date:                  cohort.end_date?.slice(0, 10)   || '',
           enrollment_capacity:       cohort.enrollment_capacity?.toString() || '',
@@ -203,6 +211,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
       name:                      form.name.trim(),
       org_id:                    form.org_id,
       program_type:              form.program_type,
+      ...(isEdit && { status: form.status }),
       start_date:                form.start_date || undefined,
       end_date:                  form.end_date   || undefined,
       enrollment_capacity:       form.enrollment_capacity ? parseInt(form.enrollment_capacity) : undefined,
@@ -272,6 +281,17 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
               {PROGRAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </SelectEl>
           </Field>
+
+          {/* Status — edit mode only */}
+          {isEdit && (
+            <Field label="Status">
+              <SelectEl value={form.status} onChange={e => set('status', e.target.value)}>
+                {(STATUS_TRANSITIONS[cohort?.status || 'draft'] || ['draft']).map(s => (
+                  <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </SelectEl>
+            </Field>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
@@ -439,6 +459,7 @@ export default function CohortsPage() {
           : data?.data?.map((cohort, i) => {
               const st = STATUS_STYLES[cohort.status] || STATUS_STYLES.archived;
               const hc = HEALTH_COLORS[cohort.health_label] || '#64748b';
+              const isCompleted = cohort.status === 'completed';
               return (
                 <motion.div
                   key={cohort.id}
@@ -446,6 +467,7 @@ export default function CohortsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                   className="glass-card-hover p-5 cursor-pointer group relative"
+                  style={isCompleted ? { opacity: 0.55, filter: 'grayscale(25%)' } : {}}
                   onClick={() => navigate(`/admin/cohorts/${cohort.id}`)}>
 
                   {/* Edit button — top-right on hover */}

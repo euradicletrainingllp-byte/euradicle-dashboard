@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Building2, Users, GraduationCap,
   BookOpen, FileText, Bell, LogOut,
-  ChevronLeft, ChevronRight, Zap, Menu, KeyRound, Sun, Moon,
+  ChevronLeft, ChevronRight, Zap, Menu, KeyRound, Sun, Moon, BarChart2,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/admin/users',         icon: Users,           label: 'Users'         },
   { to: '/admin/assessments',   icon: FileText,        label: 'Assessments'   },
   { to: '/admin/content',       icon: BookOpen,        label: 'Content'       },
+  { to: '/admin/analytics',     icon: BarChart2,       label: 'Analytics'     },
 ];
 
 export default function AdminLayout() {

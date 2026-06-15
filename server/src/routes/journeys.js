@@ -48,7 +48,7 @@ router.get('/cohorts/:cohortId/journey', async (req, res, next) => {
 
     // Fetch interventions
     let interventionQuery = supabase.from('journey_interventions')
-      .select(`*, content_items(id, title, content_type, file_url, external_url, estimated_minutes)`)
+      .select(`*, content_items(id, title, content_type, file_url, external_url, estimated_minutes), assessments(id, title, assessment_type, library_status, timer_minutes, sections)`)
       .eq('journey_id', journey.id)
       .order('sequence_order', { ascending: true });
 
@@ -85,9 +85,12 @@ router.post('/cohorts/:cohortId/journey/interventions',
 
       const {
         title, intervention_type, sequence_order, description, facilitator_notes,
-        scheduled_date, scheduled_time, duration_minutes,
+        scheduled_date, scheduled_time, scheduled_end_time, duration_minutes,
         virtual_session_link, virtual_session_platform,
-        content_item_id, release_at, access_until, is_mandatory, status,
+        location, offline_facilitator,
+        participant_groups,
+        content_item_id, assessment_id,
+        release_at, access_until, is_mandatory, status,
       } = req.body;
 
       if (!title || !intervention_type) {
@@ -105,15 +108,48 @@ router.post('/cohorts/:cohortId/journey/interventions',
       const { data, error } = await supabase.from('journey_interventions').insert({
         id: uuidv4(), journey_id: journey.id, cohort_id: cohortId,
         title, intervention_type, sequence_order: order,
-        description, facilitator_notes, scheduled_date, scheduled_time,
-        duration_minutes, virtual_session_link, virtual_session_platform,
+        description: description || null,
+        facilitator_notes: facilitator_notes || null,
+        scheduled_date: scheduled_date || null,
+        scheduled_time: scheduled_time || null,
+        scheduled_end_time: scheduled_end_time || null,
+        duration_minutes: duration_minutes || null,
+        virtual_session_link: virtual_session_link || null,
+        virtual_session_platform: virtual_session_platform || null,
+        location: location || null,
+        offline_facilitator: offline_facilitator || null,
+        participant_groups: participant_groups || [],
         content_item_id: content_item_id || null,
-        release_at, access_until,
+        assessment_id: assessment_id || null,
+        release_at: release_at || null,
+        access_until: access_until || null,
         is_mandatory: is_mandatory !== false,
         status: status || 'published',
-      }).select('*, content_items(id, title, content_type)').single();
+      }).select('*, content_items(id, title, content_type), assessments(id, title, assessment_type, library_status, timer_minutes, sections)').single();
 
       if (error) throw error;
+
+      // Auto-create assessment_assignment for the cohort if not already assigned
+      if (assessment_id) {
+        const { data: existing } = await supabase.from('assessment_assignments')
+          .select('id').eq('cohort_id', cohortId).eq('assessment_id', assessment_id).single();
+        if (!existing) {
+          await supabase.from('assessment_assignments').insert({
+            id: uuidv4(),
+            cohort_id: cohortId,
+            assessment_id,
+            access_open: release_at || new Date().toISOString(),
+            access_close: access_until || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            mandatory: is_mandatory !== false,
+            visibility_org_admin_completion: true,
+            visibility_org_admin_scores: true,
+            visibility_org_admin_responses: false,
+            visibility_participant_score: true,
+            visibility_participant_report: false,
+          });
+        }
+      }
+
       res.status(201).json({ data });
     } catch (err) { next(err); }
   }
@@ -155,7 +191,28 @@ router.patch('/cohorts/:cohortId/journey/interventions/:interventionId',
 
       const { data, error } = await supabase.from('journey_interventions')
         .update(updates).eq('id', interventionId).eq('cohort_id', cohortId)
-        .select('*, content_items(id, title, content_type)').single();
+        .select('*, content_items(id, title, content_type), assessments(id, title, assessment_type, library_status, timer_minutes, sections)').single();
+
+      // Auto-create assessment_assignment if assessment_id was set and not already assigned
+      if (updates.assessment_id) {
+        const { data: existing } = await supabase.from('assessment_assignments')
+          .select('id').eq('cohort_id', cohortId).eq('assessment_id', updates.assessment_id).single();
+        if (!existing) {
+          await supabase.from('assessment_assignments').insert({
+            id: uuidv4(),
+            cohort_id: cohortId,
+            assessment_id: updates.assessment_id,
+            access_open: updates.release_at || new Date().toISOString(),
+            access_close: updates.access_until || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            mandatory: updates.is_mandatory !== false,
+            visibility_org_admin_completion: true,
+            visibility_org_admin_scores: true,
+            visibility_org_admin_responses: false,
+            visibility_participant_score: true,
+            visibility_participant_report: false,
+          });
+        }
+      }
 
       if (error) throw error;
       res.json({ data });

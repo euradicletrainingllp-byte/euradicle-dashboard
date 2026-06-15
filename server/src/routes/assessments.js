@@ -92,4 +92,72 @@ router.post('/:id/publish', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN)
   } catch (err) { next(err); }
 });
 
+// ── DELETE /assessments/:id (soft-delete) ────────────────────────────────────
+router.delete('/:id', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase.from('assessments')
+      .update({ deleted_at: new Date().toISOString(), library_status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    await writeAuditLog({ actorId: req.user.id, actorRole: req.user.role, actionType: 'assessment.deleted', entityType: 'assessment', entityId: id, req });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ── GET /assessments/:id/responses ───────────────────────────────────────────
+router.get('/:id/responses', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { data: assignments, error: aErr } = await supabase
+      .from('assessment_assignments')
+      .select('id, cohort_id, access_open, access_close, mandatory, cohorts(id, name, cohort_code)')
+      .eq('assessment_id', id);
+    if (aErr) throw aErr;
+
+    const assignmentIds = (assignments || []).map(a => a.id);
+    let responses = [];
+    if (assignmentIds.length) {
+      // Fetch responses (flat, no nested joins to avoid FK ambiguity on enrollments→users)
+      const { data: r, error: rErr } = await supabase
+        .from('assessment_responses')
+        .select('id, assignment_id, enrollment_id, status, total_score, auto_score, submitted_at, time_taken_seconds, attempt_number')
+        .in('assignment_id', assignmentIds)
+        .order('submitted_at', { ascending: false });
+      if (rErr) throw rErr;
+
+      // Fetch enrollments separately to avoid the 3-way FK ambiguity (enrolled_by / participant_id / withdrawn_by → users)
+      const enrollmentIds = [...new Set((r || []).map(x => x.enrollment_id).filter(Boolean))];
+      let participantMap = {};
+      if (enrollmentIds.length) {
+        const { data: enrs } = await supabase
+          .from('enrollments')
+          .select('id, participant_id')
+          .in('id', enrollmentIds);
+
+        const userIds = [...new Set((enrs || []).map(e => e.participant_id).filter(Boolean))];
+        let userMap = {};
+        if (userIds.length) {
+          const { data: users } = await supabase
+            .from('users')
+            .select('id, name, display_name, email, designation, photo_url')
+            .in('id', userIds);
+          (users || []).forEach(u => { userMap[u.id] = u; });
+        }
+        (enrs || []).forEach(e => {
+          participantMap[e.id] = { ...e, user: userMap[e.participant_id] || null };
+        });
+      }
+
+      responses = (r || []).map(resp => ({
+        ...resp,
+        enrollment: participantMap[resp.enrollment_id] || null,
+      }));
+    }
+
+    res.json({ assignments: assignments || [], data: responses });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

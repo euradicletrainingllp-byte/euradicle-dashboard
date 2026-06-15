@@ -231,6 +231,11 @@ router.post('/:id/assessments', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_AD
       access_open: access_open || null,
       access_close: access_close || null,
       mandatory: mandatory ?? true,
+      visibility_org_admin_completion: true,
+      visibility_org_admin_scores: true,
+      visibility_org_admin_responses: false,
+      visibility_participant_score: true,
+      visibility_participant_report: false,
     }).select().single();
     if (error) throw error;
     res.status(201).json({ data });

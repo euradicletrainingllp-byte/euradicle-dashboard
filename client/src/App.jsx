@@ -16,6 +16,7 @@ import CohortDetailPage from './pages/admin/CohortDetailPage';
 import UsersPage from './pages/admin/UsersPage';
 import AssessmentsPage from './pages/admin/AssessmentsPage';
 import ContentPage from './pages/admin/ContentPage';
+import AnalyticsPage from './pages/admin/AnalyticsPage';
 
 // Org Admin pages
 import OrgAdminDashboard from './pages/org-admin/OrgAdminDashboard';
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="users" element={<UsersPage />} />
           <Route path="assessments" element={<AssessmentsPage />} />
           <Route path="content" element={<ContentPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
 
         {/* Org Admin */}

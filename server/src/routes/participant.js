@@ -67,14 +67,25 @@ router.get('/cohorts/:id/content', requireParticipant, async (req, res, next) =>
       .select('id').eq('cohort_id', cohortId).eq('participant_id', req.user.id).eq('status', 'active').single();
     if (!enr) return res.status(403).json({ error: { code: 'NOT_ENROLLED' } });
 
-    // Get assignments ordered by sequence
+    // Get assignments ordered by sequence (flat query — avoids PostgREST join issues)
     const { data: assignments, error } = await supabase
       .from('content_assignments')
-      .select('*,content_items(id,title,description,content_type,estimated_minutes,file_url,external_url)')
+      .select('*')
       .eq('cohort_id', cohortId)
       .eq('visibility_status', 'published')
       .order('sequence_order', { ascending: true });
     if (error) throw error;
+
+    // Fetch content item details separately to avoid schema-cache join failures
+    const contentItemIds = [...new Set((assignments || []).map(a => a.content_item_id).filter(Boolean))];
+    let contentItemMap = {};
+    if (contentItemIds.length) {
+      const { data: items } = await supabase
+        .from('content_items')
+        .select('id,title,description,content_type,estimated_minutes,file_url,external_url,pages')
+        .in('id', contentItemIds);
+      (items || []).forEach(item => { contentItemMap[item.id] = item; });
+    }
 
     // Get progress for this enrollment
     const asgIds = (assignments || []).map(a => a.id);
@@ -94,7 +105,14 @@ router.get('/cohorts/:id/content', requireParticipant, async (req, res, next) =>
       const completed = progress?.completed || false;
       const locked = i > 0 && !prevCompleted;
       prevCompleted = completed;
-      return { ...a, progress, locked };
+      return {
+        ...a,
+        content_items: contentItemMap[a.content_item_id] || null,
+        progress,
+        is_completed: progress?.completed || false,
+        is_locked: locked,
+        locked, // keep for backward compat
+      };
     });
 
     res.json({ data: result });
@@ -255,6 +273,7 @@ router.post('/content-progress/:caId/complete', requireParticipant, async (req, 
       ({ data, error } = await supabase.from('content_progress').insert({
         id: uuidv4(), content_assignment_id: caId, enrollment_id: enr.id,
         completed: true, completed_at: now, accessed_at: now, last_accessed_at: now,
+        time_spent_seconds: 0, download_count: 0,
       }).select().single());
     }
     if (error) throw error;
