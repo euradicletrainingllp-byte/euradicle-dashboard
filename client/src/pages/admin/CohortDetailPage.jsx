@@ -9,8 +9,10 @@ import {
   Layers, MapPin, Clock, Link as LinkIcon, ChevronDown, ChevronUp,
   Package, Search, Building2, AlertCircle, Check, Brain, Target,
   ExternalLink, Globe, Headphones, Star, Sliders, WifiOff, UserPlus,
+  Download, Eye, ChevronRight, Award,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import * as XLSX from 'xlsx';
 import api from '../../lib/api';
 
 // ── Shared modal portal ───────────────────────────────────────────────────────
@@ -340,7 +342,7 @@ const CONTENT_TYPE_LABELS = {
 };
 
 const TYPE_MAP = Object.fromEntries(INTERVENTION_TYPES.map(t => [t.value, t]));
-const TABS = ['Overview', 'Participants', 'Journey', 'Assignments', 'Analytics'];
+const TABS = ['Overview', 'Participants', 'Journey', 'Assignments', 'Results'];
 
 const ASSESSMENT_TYPE_MAP = {
   pre_program:      { label: 'Pre-Program',      color: '#7c3aed' },
@@ -1010,6 +1012,343 @@ function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabe
   );
 }
 
+// ── Excel Export helper (two-sheet workbook) ─────────────────────────────────
+function exportResponsesXLSX(assessmentTitle, responses, assignment) {
+  const sections = assignment?.assessments?.sections || [];
+  // Flatten all questions across sections with a numbered label
+  const allQuestions = [];
+  sections.forEach((sec, si) => {
+    (sec.questions || []).forEach((q, qi) => {
+      allQuestions.push({
+        key: q.id != null ? q.id : qi,
+        label: `Q${allQuestions.length + 1}`,
+        text: q.text || `Question ${allQuestions.length + 1}`,
+        type: q.type,
+        options: q.options || [],
+        section: sec.title || `Section ${si + 1}`,
+      });
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Participant Summary ──────────────────────────────────────────────
+  const summaryData = [
+    ['Name', 'Email', 'Department', 'Designation', 'Status', 'Score', 'Attempt #', 'Started At', 'Submitted At'],
+  ];
+  (responses || []).forEach(r => {
+    const u = r.enrollments?.users || {};
+    summaryData.push([
+      u.name || u.display_name || '',
+      u.email || '',
+      u.department || '',
+      u.designation || '',
+      r.status || '',
+      r.total_score ?? '',
+      r.attempt_number || '',
+      r.started_at ? format(new Date(r.started_at), 'dd/MM/yyyy HH:mm') : '',
+      r.submitted_at ? format(new Date(r.submitted_at), 'dd/MM/yyyy HH:mm') : '',
+    ]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  // Column widths for sheet 1
+  ws1['!cols'] = [24, 28, 18, 20, 12, 8, 10, 18, 18].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws1, 'Participant Summary');
+
+  // ── Sheet 2: Question Responses ───────────────────────────────────────────────
+  // Row 1: question labels (Q1, Q2 …)
+  // Row 2: question text (for context)
+  // Row 3+: one row per participant with their selected answer
+  const qHeaders = ['Name', 'Email', ...allQuestions.map(q => q.label)];
+  const qSubHeaders = ['', '', ...allQuestions.map(q => q.text)];
+  const qRows = [qHeaders, qSubHeaders];
+
+  (responses || []).forEach(r => {
+    const u = r.enrollments?.users || {};
+    const answers = r.answers || {};
+    const row = [u.name || u.display_name || '', u.email || ''];
+    allQuestions.forEach(q => {
+      const ans = answers[q.key];
+      if (ans == null || ans === '') {
+        row.push('');
+      } else if (q.type === 'mcq') {
+        const idx = Number(ans);
+        const optionText = q.options[idx];
+        if (optionText != null) {
+          // Avoid double-prefix if option text already starts with "A. " pattern
+          const alreadyPrefixed = /^[A-Z]\.\s/.test(String(optionText));
+          row.push(alreadyPrefixed ? String(optionText) : `${String.fromCharCode(65 + idx)}. ${optionText}`);
+        } else {
+          row.push(String(ans));
+        }
+      } else {
+        row.push(String(ans));
+      }
+    });
+    qRows.push(row);
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(qRows);
+  // Set header row heights via row metadata isn't directly supported; set col widths
+  const qColWidths = [24, 28, ...allQuestions.map(() => ({ wch: 22 }))];
+  ws2['!cols'] = [{ wch: 24 }, { wch: 28 }, ...allQuestions.map(() => ({ wch: 22 }))];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Question Responses');
+
+  // Write and trigger download
+  const safe = assessmentTitle.replace(/[^a-z0-9]/gi, '_');
+  XLSX.writeFile(wb, `${safe}_responses.xlsx`);
+}
+
+// ── Response Detail Modal ─────────────────────────────────────────────────────
+function ResponseDetailModal({ response, assessment, onClose }) {
+  const user = response.enrollments?.users || {};
+  const answers = response.answers || {};
+  const sections = assessment?.assessments?.sections || [];
+
+  return (
+    <ModalBackdrop onClose={onClose}>
+      <motion.div
+        initial={{ scale: 0.96, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 16 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className="glass-card w-full max-w-2xl"
+        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(170,120,166,0.2)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(200,150,80,0.14)', border: '1px solid rgba(200,150,80,0.25)' }}>
+            <Eye size={15} style={{ color: '#c89650' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-white leading-tight truncate">{user.name || user.display_name || 'Participant'}</h2>
+            <p className="text-xs mt-0.5 truncate" style={{ color: '#6a5880' }}>{user.email} {user.designation ? `· ${user.designation}` : ''}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {response.total_score != null && (
+              <span className="text-sm font-bold px-3 py-1 rounded-lg" style={{ background: 'rgba(100,200,120,0.1)', color: '#64c878', border: '1px solid rgba(100,200,120,0.25)' }}>
+                Score: {response.total_score}
+              </span>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
+              onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}><X size={17} /></button>
+          </div>
+        </div>
+
+        {/* Body — scrollable */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+          {sections.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: '#5a4870' }}>No sections / question structure available.</p>
+          ) : sections.map((sec, si) => (
+            <div key={si}>
+              <h3 className="font-semibold mb-3 text-sm" style={{ color: '#c8a0c4' }}>{sec.title || `Section ${si + 1}`}</h3>
+              <div className="space-y-4">
+                {(sec.questions || []).map((q, qi) => {
+                  const qKey = q.id || qi;
+                  const answer = answers[qKey];
+                  return (
+                    <div key={qi} className="rounded-xl p-4 space-y-2"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.1)' }}>
+                      <p className="text-sm" style={{ color: '#e0d8f0' }}>
+                        <span className="text-xs font-bold mr-2" style={{ color: '#5a4870' }}>{si + 1}.{qi + 1}</span>
+                        {q.text}
+                      </p>
+                      {answer == null || answer === '' ? (
+                        <p className="text-xs italic" style={{ color: '#5a4870' }}>No answer provided</p>
+                      ) : q.type === 'mcq' ? (
+                        <div className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(170,120,166,0.1)', color: '#f0c070' }}>
+                          {String.fromCharCode(65 + answer)}. {(q.options || [])[answer] || answer}
+                        </div>
+                      ) : (
+                        <div className="text-sm px-3 py-2 rounded-lg whitespace-pre-wrap" style={{ background: 'rgba(170,120,166,0.08)', color: '#d0c8e0' }}>
+                          {String(answer)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(170,120,166,0.1)' }}>
+          <div className="flex items-center justify-between text-xs" style={{ color: '#5a4870' }}>
+            <span>Attempt #{response.attempt_number}</span>
+            {response.submitted_at && <span>Submitted {format(new Date(response.submitted_at), 'dd MMM yyyy, HH:mm')}</span>}
+          </div>
+        </div>
+      </motion.div>
+    </ModalBackdrop>
+  );
+}
+
+// ── Per-Assessment Results Panel ──────────────────────────────────────────────
+function AssessmentResultCard({ cohortId, assignment }) {
+  const [expanded, setExpanded] = useState(false);
+  const [viewingResponse, setViewingResponse] = useState(null);
+
+  const { data: responses, isLoading } = useQuery({
+    queryKey: ['cohort-asmt-responses', cohortId, assignment.id],
+    queryFn: () => api.get(`/cohorts/${cohortId}/assessments/${assignment.id}/responses`).then(r => r.data.data),
+    enabled: expanded,
+    staleTime: 30_000,
+  });
+
+  const asmtInfo = ASSESSMENT_TYPE_MAP[assignment.assessments?.assessment_type] || { label: 'Assessment', color: '#aa78a6' };
+  const submitted = (responses || []).filter(r => r.status === 'submitted' || r.status === 'scored').length;
+  const inProgress = (responses || []).filter(r => r.status === 'in_progress').length;
+  const total = (responses || []).length;
+
+  return (
+    <>
+    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(170,120,166,0.14)' }}>
+      {/* Assessment header row */}
+      <div
+        className="flex items-center gap-4 px-5 py-4 cursor-pointer transition-all"
+        style={{ background: expanded ? 'rgba(170,120,166,0.06)' : 'rgba(255,255,255,0.02)' }}
+        onClick={() => setExpanded(e => !e)}
+        onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+        onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: `${asmtInfo.color}18`, border: `1px solid ${asmtInfo.color}35` }}>
+          <Brain size={16} style={{ color: asmtInfo.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate" style={{ color: '#f0e8fc' }}>
+            {assignment.assessments?.title || 'Untitled'}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+            <span style={{ color: asmtInfo.color }}>{asmtInfo.label}</span>
+            {assignment.assessments?.sections?.length ? ` · ${assignment.assessments.sections.length} section(s)` : ''}
+            {assignment.is_mandatory && <span className="ml-2" style={{ color: '#f59e0b' }}>Mandatory</span>}
+          </p>
+        </div>
+        {expanded && responses && (
+          <div className="flex items-center gap-3 flex-shrink-0 text-xs">
+            <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(64,201,128,0.1)', color: '#40c980', border: '1px solid rgba(64,201,128,0.2)' }}>
+              {submitted} submitted
+            </span>
+            {inProgress > 0 && (
+              <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(200,150,80,0.1)', color: '#c89650', border: '1px solid rgba(200,150,80,0.2)' }}>
+                {inProgress} in progress
+              </span>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); exportResponsesXLSX(assignment.assessments?.title || 'assessment', responses, assignment); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors"
+              style={{ background: 'rgba(100,150,220,0.12)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.25)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,150,220,0.22)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,150,220,0.12)'}>
+              <Download size={12} /> Export Excel
+            </button>
+          </div>
+        )}
+        <span style={{ color: '#5a4870', flexShrink: 0 }}>
+          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>
+      </div>
+
+      {/* Expanded response table */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            style={{ overflow: 'hidden', borderTop: '1px solid rgba(170,120,166,0.1)' }}>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10 text-sm" style={{ color: '#5a4870' }}>
+                <div className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin mr-2" />
+                Loading responses…
+              </div>
+            ) : !responses?.length ? (
+              <div className="py-10 text-center" style={{ color: '#5a4870' }}>
+                <Brain size={32} className="mx-auto mb-3 opacity-20" />
+                <p className="text-sm">No responses yet. Participants haven't started this assessment.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(170,120,166,0.12)', background: 'rgba(170,120,166,0.05)' }}>
+                      {['Participant', 'Department', 'Status', 'Score', 'Attempt', 'Submitted At', ''].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#7060a0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {responses.map(r => {
+                      const u = r.enrollments?.users || {};
+                      const isSubmitted = r.status === 'submitted' || r.status === 'scored';
+                      return (
+                        <tr key={r.id} style={{ borderBottom: '1px solid rgba(170,120,166,0.08)' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                          onMouseLeave={e => e.currentTarget.style.background = ''}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                                style={{ background: 'linear-gradient(135deg,#aa78a6,#6040a0)', color: '#fff' }}>
+                                {(u.name || u.display_name || '?')[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium truncate" style={{ color: '#f0e8fc' }}>{u.name || u.display_name || '—'}</p>
+                                <p className="text-xs truncate" style={{ color: '#7060a0' }}>{u.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs" style={{ color: '#9080a8' }}>{u.department || '—'}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-1 rounded-full font-medium"
+                              style={{
+                                background: isSubmitted ? 'rgba(64,201,128,0.1)' : r.status === 'in_progress' ? 'rgba(200,150,80,0.1)' : 'rgba(170,120,166,0.08)',
+                                color: isSubmitted ? '#40c980' : r.status === 'in_progress' ? '#c89650' : '#7060a0',
+                                border: `1px solid ${isSubmitted ? 'rgba(64,201,128,0.25)' : r.status === 'in_progress' ? 'rgba(200,150,80,0.25)' : 'rgba(170,120,166,0.15)'}`,
+                              }}>
+                              {r.status === 'in_progress' ? 'In Progress' : r.status === 'submitted' ? 'Submitted' : r.status === 'scored' ? 'Scored' : r.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold" style={{ color: r.total_score != null ? '#f0e8fc' : '#5a4870' }}>
+                            {r.total_score != null ? r.total_score : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-center" style={{ color: '#9080a8' }}>#{r.attempt_number}</td>
+                          <td className="px-4 py-3 text-xs" style={{ color: '#9080a8' }}>
+                            {r.submitted_at ? format(new Date(r.submitted_at), 'dd MMM yyyy, HH:mm') : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isSubmitted && (
+                              <button onClick={() => setViewingResponse(r)}
+                                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+                                style={{ color: '#aa78a6', border: '1px solid rgba(170,120,166,0.2)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = '#f0e8fc'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#aa78a6'; }}>
+                                <Eye size={11} /> View
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+
+    {/* Response detail modal */}
+    <AnimatePresence>
+      {viewingResponse && (
+        <ResponseDetailModal
+          response={viewingResponse}
+          assessment={assignment}
+          onClose={() => setViewingResponse(null)}
+        />
+      )}
+    </AnimatePresence>
+    </>
+  );
+}
+
 function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, error }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
@@ -1132,7 +1471,7 @@ export default function CohortDetailPage() {
   const { data: assignedAssessments, isLoading: loadingAsmts } = useQuery({
     queryKey: ['cohort-assessments', id],
     queryFn: () => api.get(`/cohorts/${id}/assessments`).then(r => r.data.data),
-    enabled: tab === 'Assignments',
+    enabled: tab === 'Assignments' || tab === 'Results',
   });
 
   const { data: assignedContent, isLoading: loadingContent } = useQuery({
@@ -1337,6 +1676,12 @@ export default function CohortDetailPage() {
               <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
                 style={{ background: 'rgba(170,120,166,0.2)', color: '#aa78a6' }}>
                 {interventions.length}
+              </span>
+            )}
+            {t === 'Results' && assignedAssessments?.length > 0 && (
+              <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(200,150,80,0.2)', color: '#c89650' }}>
+                {assignedAssessments.length}
               </span>
             )}
           </button>
@@ -1695,17 +2040,59 @@ export default function CohortDetailPage() {
         </motion.div>
       )}
 
-      {/* Analytics Tab */}
-      {tab === 'Analytics' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart2 size={18} style={{ color: '#aa78a6' }} />
-            <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Analytics</h2>
+      {/* Results Tab */}
+      {tab === 'Results' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#f0e8fc' }}>
+                <Award size={18} style={{ color: '#c89650' }} />
+                Assessment Results
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+                View participant responses for each assessment assigned to this cohort. Click an assessment to expand.
+              </p>
+            </div>
           </div>
-          <div className="text-center py-12" style={{ color: '#5a4870' }}>
-            <BarChart2 size={40} className="mx-auto mb-3 opacity-30" />
-            <p>Analytics available after cohort is launched.</p>
-          </div>
+
+          {/* Summary stats */}
+          {!loadingAsmts && assignedAssessments?.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Assessments',  value: assignedAssessments.length, color: '#aa78a6' },
+                { label: 'Participants', value: cohort?.enrollment_count ?? 0, color: '#6496dc' },
+                { label: 'Cohort Status', value: cohort?.status, color: '#64c878' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-xl p-4 text-center"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.12)' }}>
+                  <p className="text-2xl font-bold capitalize" style={{ color }}>{value ?? '—'}</p>
+                  <p className="text-xs mt-1" style={{ color: '#7060a0' }}>{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {loadingAsmts ? (
+            <div className="glass-card p-10 text-center">
+              <div className="w-6 h-6 rounded-full border-2 border-purple-400 border-t-transparent animate-spin mx-auto mb-3" />
+              <p className="text-sm" style={{ color: '#5a4870' }}>Loading assessments…</p>
+            </div>
+          ) : !assignedAssessments?.length ? (
+            <div className="glass-card p-16 text-center">
+              <Brain size={44} className="mx-auto mb-4 opacity-20" style={{ color: '#aa78a6' }} />
+              <h3 className="font-semibold mb-1" style={{ color: '#9080a8' }}>No assessments assigned</h3>
+              <p className="text-sm" style={{ color: '#5a4870' }}>
+                Go to the <strong style={{ color: '#aa78a6' }}>Assignments</strong> tab to assign assessments to this cohort first.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {assignedAssessments.map(assignment => (
+                <AssessmentResultCard key={assignment.id} cohortId={id} assignment={assignment} />
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
 

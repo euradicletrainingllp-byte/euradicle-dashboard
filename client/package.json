@@ -8,8 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/fiber": "^8.17.0",
     "@react-three/drei": "^9.109.0",
+    "@react-three/fiber": "^8.17.0",
     "@tanstack/react-query": "^5.51.1",
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
@@ -20,9 +20,10 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.25.1",
     "recharts": "^2.12.7",
+    "tailwind-merge": "^2.4.0",
     "three": "^0.167.0",
-    "zustand": "^4.5.4",
-    "tailwind-merge": "^2.4.0"
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

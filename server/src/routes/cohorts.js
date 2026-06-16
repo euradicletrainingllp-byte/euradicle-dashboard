@@ -251,6 +251,51 @@ router.delete('/:id/assessments/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.M
   } catch (err) { next(err); }
 });
 
+// ── GET /cohorts/:id/assessments/:asgId/responses ─────────────────────────────
+router.get('/:id/assessments/:asgId/responses', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { asgId } = req.params;
+
+    // Fetch responses (use * to include answers JSONB column)
+    const { data: responses, error } = await supabase
+      .from('assessment_responses')
+      .select('*')
+      .eq('assignment_id', asgId)
+      .order('submitted_at', { ascending: false });
+    if (error) throw error;
+
+    if (!responses || responses.length === 0) return res.json({ data: [] });
+
+    // Safe manual joins to avoid 3-way FK ambiguity on enrollments→users
+    const enrollmentIds = [...new Set(responses.map(r => r.enrollment_id).filter(Boolean))];
+    let enrollmentMap = {};
+    if (enrollmentIds.length) {
+      const { data: enrs } = await supabase
+        .from('enrollments')
+        .select('id, participant_id')
+        .in('id', enrollmentIds);
+
+      const userIds = [...new Set((enrs || []).map(e => e.participant_id).filter(Boolean))];
+      let userMap = {};
+      if (userIds.length) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, name, display_name, email, designation, department')
+          .in('id', userIds);
+        (users || []).forEach(u => { userMap[u.id] = u; });
+      }
+      (enrs || []).forEach(e => { enrollmentMap[e.id] = { ...e, users: userMap[e.participant_id] || null }; });
+    }
+
+    const data = responses.map(r => ({
+      ...r,
+      enrollments: enrollmentMap[r.enrollment_id] || null,
+    }));
+
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
 // ══════════════════════════════════════════════════════════════════════════════
 // CONTENT ASSIGNMENTS
 // ══════════════════════════════════════════════════════════════════════════════

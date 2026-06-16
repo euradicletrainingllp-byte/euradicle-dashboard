@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import {
   Download, Lock, ChevronDown, ChevronUp, Check, X,
   Brain, Target, Star, Sliders, BarChart2, AlertCircle,
   PlayCircle, RefreshCw, Send, ChevronLeft, ChevronRight,
-  Headphones, Package, Globe,
+  Headphones, Package, Globe, WifiOff, ArrowRight,
 } from 'lucide-react';
 import { format, parseISO, isAfter } from 'date-fns';
 import api from '../../lib/api';
@@ -19,7 +19,7 @@ import api from '../../lib/api';
 const INTERVENTION_ICONS = {
   pre_work: BookOpen, virtual_session: Video, case_study: FileText,
   study_material: BookOpen, reflection: Layers, group_activity: Users,
-  assessment_window: CheckCircle, custom: MapPin,
+  assessment_window: CheckCircle, offline_session: WifiOff, custom: MapPin,
 };
 const INTERVENTION_STYLES = {
   pre_work:          { bg: 'rgba(208,160,48,0.1)',  color: '#d0a030', border: 'rgba(208,160,48,0.2)',  label: 'Pre-Work' },
@@ -29,6 +29,7 @@ const INTERVENTION_STYLES = {
   reflection:        { bg: 'rgba(170,120,166,0.1)', color: '#aa78a6', border: 'rgba(170,120,166,0.2)', label: 'Reflection' },
   group_activity:    { bg: 'rgba(100,200,180,0.1)', color: '#64c8b4', border: 'rgba(100,200,180,0.2)', label: 'Group Activity' },
   assessment_window: { bg: 'rgba(200,150,80,0.1)',  color: '#c89650', border: 'rgba(200,150,80,0.2)',  label: 'Assessment' },
+  offline_session:   { bg: 'rgba(200,100,150,0.1)', color: '#c86496', border: 'rgba(200,100,150,0.2)', label: 'Offline Session' },
   custom:            { bg: 'rgba(170,120,166,0.06)', color: '#9080a8', border: 'rgba(170,120,166,0.15)', label: 'Activity' },
 };
 const SECTIONS = [
@@ -59,7 +60,7 @@ const CONTENT_TYPE_MAP = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Journey: InterventionCard
 // ─────────────────────────────────────────────────────────────────────────────
-function InterventionCard({ iv, index }) {
+function InterventionCard({ iv, index, onGoToAssessments }) {
   const [expanded, setExpanded] = useState(false);
   const Icon = INTERVENTION_ICONS[iv.intervention_type] || MapPin;
   const style = INTERVENTION_STYLES[iv.intervention_type] || INTERVENTION_STYLES.custom;
@@ -110,6 +111,8 @@ function InterventionCard({ iv, index }) {
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }} className="px-4 pb-4 space-y-3">
           {iv.description && <p className="text-sm" style={{ color: '#9080a8' }}>{iv.description}</p>}
+
+          {/* Virtual Session: join link */}
           {iv.intervention_type === 'virtual_session' && iv.virtual_session_link && (
             <a href={iv.virtual_session_link} target="_blank" rel="noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
@@ -117,6 +120,59 @@ function InterventionCard({ iv, index }) {
               <Video size={15} /> Join Session {iv.virtual_session_platform && `on ${iv.virtual_session_platform}`} <ExternalLink size={13} />
             </a>
           )}
+
+          {/* Offline Session: venue + facilitator details */}
+          {iv.intervention_type === 'offline_session' && (
+            <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(200,100,150,0.07)', border: '1px solid rgba(200,100,150,0.2)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#c86496' }}>Session Details</p>
+              {(iv.location || iv.virtual_session_link) && (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#c86496' }} />
+                  <p style={{ color: '#d0c8e0' }}>{iv.location || iv.virtual_session_link}</p>
+                </div>
+              )}
+              {iv.offline_facilitator && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Users size={14} className="flex-shrink-0" style={{ color: '#c86496' }} />
+                  <p style={{ color: '#d0c8e0' }}>Facilitator: <strong>{iv.offline_facilitator}</strong></p>
+                </div>
+              )}
+              {iv.scheduled_date && iv.scheduled_time && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock size={14} className="flex-shrink-0" style={{ color: '#c86496' }} />
+                  <p style={{ color: '#d0c8e0' }}>
+                    {format(parseISO(iv.scheduled_date), 'MMM d, yyyy')} at {iv.scheduled_time.slice(0, 5)}
+                    {iv.scheduled_end_time ? ` – ${iv.scheduled_end_time.slice(0, 5)}` : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Assessment Window: navigate to Assessments tab */}
+          {iv.intervention_type === 'assessment_window' && (
+            <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(200,150,80,0.07)', border: '1px solid rgba(200,150,80,0.2)' }}>
+              <div className="flex items-center gap-2">
+                <Brain size={15} style={{ color: '#c89650' }} />
+                <p className="text-sm font-medium" style={{ color: '#f0c070' }}>
+                  {iv.assessments ? iv.assessments.title : 'Assessment Window'}
+                </p>
+              </div>
+              {iv.assessments?.description && (
+                <p className="text-xs" style={{ color: '#9080a8' }}>{iv.assessments.description}</p>
+              )}
+              <button
+                onClick={onGoToAssessments}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full justify-center"
+                style={{ background: 'rgba(200,150,80,0.15)', color: '#c89650', border: '1px solid rgba(200,150,80,0.3)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,150,80,0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(200,150,80,0.15)'}>
+                <Brain size={15} /> Go to Assessments <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Linked content item */}
           {iv.content_items && (
             <div className="rounded-xl p-4" style={{ background: 'rgba(100,150,220,0.07)', border: '1px solid rgba(100,150,220,0.15)' }}>
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -130,7 +186,7 @@ function InterventionCard({ iv, index }) {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {iv.content_items.external_url && (
                     <a href={iv.content_items.external_url} target="_blank" rel="noreferrer"
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium"
@@ -619,6 +675,7 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function AssessmentsTab({ cohortId }) {
   const [taking, setTaking] = useState(null); // { assignment, responseId }
+  const itemsRef = useRef([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['participant-assessments', cohortId],
@@ -626,15 +683,17 @@ function AssessmentsTab({ cohortId }) {
     staleTime: 10_000,
   });
 
+  const items = data || [];
+  // keep ref in sync so onSuccess always has latest items
+  itemsRef.current = items;
+
   const start = useMutation({
     mutationFn: (asgId) => api.post(`/participant/assessments/${asgId}/start`).then(r => r.data),
-    onSuccess: (data, asgId) => {
-      const assignment = (items || []).find(a => a.id === asgId);
-      setTaking({ assignment, responseId: data.data?.id });
+    onSuccess: (respData, asgId) => {
+      const assignment = itemsRef.current.find(a => a.id === asgId);
+      setTaking({ assignment, responseId: respData.data?.id });
     },
   });
-
-  const items = data || [];
 
   if (taking) {
     return (
@@ -873,7 +932,14 @@ export default function ParticipantCohortPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredInterventions.map((iv, i) => <InterventionCard key={iv.id} iv={iv} index={i} />)}
+              {filteredInterventions.map((iv, i) => (
+                <InterventionCard
+                  key={iv.id}
+                  iv={iv}
+                  index={i}
+                  onGoToAssessments={() => setMainTab('Assessments')}
+                />
+              ))}
             </div>
           )}
         </>
