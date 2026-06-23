@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import api from '../../lib/api';
+import { useThemeStore } from '../../store/themeStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -49,7 +50,7 @@ function Field({ label, required, hint, children }) {
     <div>
       <Label required={required}>{label}</Label>
       {children}
-      {hint && <p className="text-xs mt-1" style={{ color: '#4a3860' }}>{hint}</p>}
+      {hint && <p className="text-xs mt-1" style={{ color: 'var(--text-ultra)' }}>{hint}</p>}
     </div>
   );
 }
@@ -61,7 +62,7 @@ function InputEl({ ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
         colorScheme: 'dark',
       }}
       onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
@@ -77,7 +78,7 @@ function SelectEl({ children, ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
       }}>
       {children}
     </select>
@@ -241,7 +242,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
             <GraduationCap size={17} style={{ color: '#aa78a6' }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">
               {isEdit ? 'Edit Cohort' : 'New Cohort'}
             </h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
@@ -250,7 +251,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
           </div>
           <button onClick={onClose}
             className="p-1.5 rounded-lg transition-colors"
-            style={{ color: '#5a4870' }}
+            style={{ color: 'var(--text-ghost)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
             <X size={17} />
@@ -319,7 +320,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
             style={{
               background: showAdvanced ? 'rgba(170,120,166,0.06)' : 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(170,120,166,0.12)',
-              color: '#7060a0',
+              color: 'var(--text-faint)',
             }}
             onMouseEnter={e => e.currentTarget.style.color = '#aa78a6'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
@@ -370,7 +371,7 @@ function CohortModal({ mode = 'create', cohort, onClose, onCreated }) {
               style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(170,120,166,0.18)',
-                color: '#f0e8fc',
+                color: 'var(--text-heading)',
               }}
               onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
               onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'}
@@ -429,8 +430,8 @@ export default function CohortsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Cohorts</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>{data?.meta?.total ?? 0} total cohorts</p>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Cohorts</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>{data?.meta?.total ?? 0} total cohorts</p>
         </div>
         <button onClick={() => setModal({ type: 'create' })} className="btn-primary flex items-center gap-2 text-sm">
           <Plus size={15} /> New Cohort
@@ -439,7 +440,7 @@ export default function CohortsPage() {
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-52">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search cohorts…" className="input-field pl-9 text-sm w-full" />
         </div>
@@ -474,7 +475,7 @@ export default function CohortsPage() {
                   <button
                     onClick={e => { e.stopPropagation(); setModal({ type: 'edit', cohort }); }}
                     className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: '#7060a0' }}
+                    style={{ color: 'var(--text-faint)' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.15)'; e.currentTarget.style.color = '#f0e8fc'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                     <Edit2 size={13} />
@@ -485,18 +486,18 @@ export default function CohortsPage() {
                       style={{ background: st.bg, border: `1px solid ${st.border}`, color: st.text }}>
                       {cohort.status}
                     </span>
-                    <div className="flex items-center gap-1.5 text-xs ml-auto mr-6" style={{ color: '#5a4870' }}>
+                    <div className="flex items-center gap-1.5 text-xs ml-auto mr-6" style={{ color: 'var(--text-ghost)' }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: hc }} />
                       {cohort.health_label || 'grey'}
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-white mb-0.5 line-clamp-1 pr-2">{cohort.name}</h3>
-                  <p className="text-xs mb-4" style={{ color: '#5a4870' }}>
-                    {cohort.organizations?.display_name} · <span style={{ color: '#3a3050' }}>{cohort.cohort_code}</span>
+                  <h3 className="font-bold text-[var(--text-heading)] mb-0.5 line-clamp-1 pr-2">{cohort.name}</h3>
+                  <p className="text-xs mb-4" style={{ color: 'var(--text-ghost)' }}>
+                    {cohort.organizations?.display_name} · <span style={{ color: 'var(--text-ultra)' }}>{cohort.cohort_code}</span>
                   </p>
 
-                  <div className="flex items-center justify-between text-xs" style={{ color: '#7060a0' }}>
+                  <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-faint)' }}>
                     <span className="flex items-center gap-1.5">
                       <Users size={11} />{cohort.enrollment_count ?? 0} enrolled
                     </span>
@@ -507,10 +508,10 @@ export default function CohortsPage() {
 
                   <div className="mt-3 pt-3 flex items-center justify-between"
                     style={{ borderTop: '1px solid rgba(170,120,166,0.08)' }}>
-                    <span className="text-xs capitalize" style={{ color: '#4a3860' }}>
+                    <span className="text-xs capitalize" style={{ color: 'var(--text-ultra)' }}>
                       {cohort.program_type?.replace(/_/g, ' ')}
                     </span>
-                    <ChevronRight size={14} style={{ color: '#3a3050' }} />
+                    <ChevronRight size={14} style={{ color: 'var(--text-ultra)' }} />
                   </div>
                 </motion.div>
               );
@@ -521,8 +522,8 @@ export default function CohortsPage() {
       {!isLoading && data?.data?.length === 0 && (
         <div className="glass-card p-16 text-center">
           <GraduationCap size={44} className="mx-auto mb-4" style={{ color: '#2a2040' }} />
-          <p className="font-semibold" style={{ color: '#5a4870' }}>No cohorts found</p>
-          <p className="text-sm mt-1" style={{ color: '#3a3050' }}>Create your first cohort to get started</p>
+          <p className="font-semibold" style={{ color: 'var(--text-ghost)' }}>No cohorts found</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-ultra)' }}>Create your first cohort to get started</p>
           <button onClick={() => setModal({ type: 'create' })}
             className="btn-primary mt-5 text-sm flex items-center gap-2 mx-auto">
             <Plus size={15} /> Create Cohort

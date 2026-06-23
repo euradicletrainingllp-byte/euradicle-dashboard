@@ -28,7 +28,7 @@ function PasswordInput({ value, onChange, placeholder }) {
         style={{
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(170,120,166,0.18)',
-          color: '#f0e8fc',
+          color: 'var(--text-heading)',
         }}
         onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
         onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'}
@@ -37,7 +37,7 @@ function PasswordInput({ value, onChange, placeholder }) {
         type="button"
         onClick={() => setShow(s => !s)}
         className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-        style={{ color: '#5a4870' }}
+        style={{ color: 'var(--text-ghost)' }}
         onMouseEnter={e => e.currentTarget.style.color = '#aa78a6'}
         onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}
       >
@@ -122,12 +122,12 @@ export function ChangePasswordModal({ onClose }) {
             <Lock size={17} style={{ color: '#aa78a6' }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">Change Password</h2>
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">Change Password</h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>Update your account password</p>
           </div>
           {!done && (
             <button onClick={onClose} className="p-1.5 rounded-lg transition-colors"
-              style={{ color: '#5a4870' }}
+              style={{ color: 'var(--text-ghost)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
               onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
               <X size={17} />
@@ -146,8 +146,8 @@ export function ChangePasswordModal({ onClose }) {
               </div>
             </motion.div>
             <div>
-              <p className="font-bold text-white">Password changed!</p>
-              <p className="text-sm mt-1" style={{ color: '#7060a0' }}>Your password has been updated successfully.</p>
+              <p className="font-bold text-[var(--text-heading)]">Password changed!</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>Your password has been updated successfully.</p>
             </div>
             <button onClick={onClose} className="btn-primary w-full text-sm">Done</button>
           </div>
@@ -251,14 +251,14 @@ export function AdminResetPasswordModal({ targetUser, onClose }) {
             <Lock size={17} style={{ color: '#e05065' }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">Reset Password</h2>
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">Reset Password</h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
               Setting new password for <span style={{ color: '#e0c8f8' }}>{targetUser.name}</span>
             </p>
           </div>
           {!done && (
             <button onClick={onClose} className="p-1.5 rounded-lg transition-colors"
-              style={{ color: '#5a4870' }}
+              style={{ color: 'var(--text-ghost)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
               onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
               <X size={17} />
@@ -276,8 +276,8 @@ export function AdminResetPasswordModal({ targetUser, onClose }) {
               </div>
             </motion.div>
             <div>
-              <p className="font-bold text-white">Password reset!</p>
-              <p className="text-sm mt-1" style={{ color: '#7060a0' }}>
+              <p className="font-bold text-[var(--text-heading)]">Password reset!</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>
                 <span style={{ color: '#e0c8f8' }}>{targetUser.name}</span>'s password has been updated.
               </p>
             </div>

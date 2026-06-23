@@ -224,8 +224,13 @@ router.post('/responses/:respId/submit', requireParticipant, async (req, res, ne
     if (!enrCheck || enrCheck.participant_id !== req.user.id) return res.status(403).json({ error: { code: 'FORBIDDEN' } });
     if (resp.status !== 'in_progress') return res.status(400).json({ error: { message: 'Already submitted' } });
 
+    // Merge any final answers sent in the request body with what's already saved
+    // (guards against race where participant submits before the 10-second auto-save fires)
+    const savedAnswers = resp.answers || {};
+    const bodyAnswers  = req.body.answers && typeof req.body.answers === 'object' ? req.body.answers : {};
+    const answers = { ...savedAnswers, ...bodyAnswers };
+
     // Auto-score MCQ answers
-    const answers = resp.answers || {};
     let autoScore = 0;
     const sections = resp.assessment_assignments?.assessments?.sections || [];
     sections.forEach(sec => {
@@ -239,7 +244,7 @@ router.post('/responses/:respId/submit', requireParticipant, async (req, res, ne
 
     const now = new Date().toISOString();
     const { data, error } = await supabase.from('assessment_responses')
-      .update({ status: 'submitted', submitted_at: now, auto_score: autoScore })
+      .update({ answers, status: 'submitted', submitted_at: now, auto_score: autoScore })
       .eq('id', respId).select().single();
     if (error) throw error;
     res.json({ data });

@@ -27,6 +27,9 @@ import OrgAdminCohortDetail from './pages/org-admin/OrgAdminCohortDetail';
 import ParticipantDashboard from './pages/participant/ParticipantDashboard';
 import ParticipantCohortPage from './pages/participant/ParticipantCohortPage';
 
+// Public pages
+import PublicCohortPage from './pages/public/PublicCohortPage';
+
 // ── Route guard ───────────────────────────────────────────────────────────────
 function PrivateRoute({ children, roles }) {
   const { token, user } = useAuthStore();
@@ -50,8 +53,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* Public — no auth required */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/c/:id" element={<PublicCohortPage />} />
 
         {/* Super Admin / Mini Super Admin */}
         <Route path="/admin" element={

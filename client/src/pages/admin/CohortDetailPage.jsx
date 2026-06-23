@@ -8,12 +8,13 @@ import {
   Plus, Trash2, Edit2, Save, X, Video, BookOpen, FileText,
   Layers, MapPin, Clock, Link as LinkIcon, ChevronDown, ChevronUp,
   Package, Search, Building2, AlertCircle, Check, Brain, Target,
-  ExternalLink, Globe, Headphones, Star, Sliders, WifiOff, UserPlus,
+  ExternalLink, Globe, Headphones, Star, Sliders, WifiOff, UserPlus, Lock,
   Download, Eye, ChevronRight, Award,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import * as XLSX from 'xlsx';
 import api from '../../lib/api';
+import { useThemeStore } from '../../store/themeStore';
 
 // ── Shared modal portal ───────────────────────────────────────────────────────
 function ModalBackdrop({ onClose, children }) {
@@ -42,10 +43,11 @@ const PROGRAM_TYPES = [
 ];
 
 function InputEl({ ...props }) {
+  const { theme } = useThemeStore();
   return (
     <input {...props}
       className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc', colorScheme: 'dark' }}
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)', colorScheme: theme }}
       onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
       onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'} />
   );
@@ -54,7 +56,7 @@ function SelectEl({ children, ...props }) {
   return (
     <select {...props}
       className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }}>
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }}>
       {children}
     </select>
   );
@@ -139,10 +141,10 @@ function EditCohortModal({ cohort, onClose }) {
             <Edit2 size={15} style={{ color: '#6496dc' }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">Edit Cohort</h2>
-            <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>Editing {cohort.cohort_code}</p>
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">Edit Cohort</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-ghost)' }}>Editing {cohort.cohort_code}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-ghost)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}><X size={17} /></button>
         </div>
@@ -192,7 +194,7 @@ function EditCohortModal({ cohort, onClose }) {
             <textarea value={form.internal_notes} onChange={e => set('internal_notes', e.target.value)} rows={2}
               placeholder="Visible only to admins…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }}
               onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
               onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'} />
           </div>
@@ -268,15 +270,15 @@ function AssessmentPicker({ value, onChange }) {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search assessment library…"
           className="w-full pl-8 pr-3 py-2 rounded-xl text-xs outline-none"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }} />
       </div>
 
       <div className="rounded-xl overflow-hidden"
         style={{ border: '1px solid rgba(170,120,166,0.14)', maxHeight: '200px', overflowY: 'auto' }}>
         {isLoading ? (
-          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>Loading…</div>
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: 'var(--text-ghost)' }}>Loading…</div>
         ) : items.length === 0 ? (
-          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: 'var(--text-ghost)' }}>
             {search ? 'No matches' : 'No assessments in library yet'}
           </div>
         ) : (
@@ -303,7 +305,7 @@ function AssessmentPicker({ value, onChange }) {
                     {item.library_status === 'published' ? 'Published' : 'Draft'}
                   </span>
                 </div>
-                <p className="text-xs truncate capitalize" style={{ color: '#5a4870' }}>
+                <p className="text-xs truncate capitalize" style={{ color: 'var(--text-ghost)' }}>
                   {item.assessment_type?.replace(/_/g, ' ')}
                   {item.sections?.length ? ` · ${item.sections.length} section(s)` : ''}
                   {item.timer_minutes ? ` · ${item.timer_minutes}m` : ''}
@@ -327,7 +329,7 @@ const INTERVENTION_TYPES = [
   { value: 'study_material',    label: 'Study Material',  icon: BookOpen,    color: '#6496dc', supportsContent: true  },
   { value: 'group_activity',    label: 'Group Activity',  icon: Users,       color: '#64c8b4', supportsContent: false },
   { value: 'assessment_window', label: 'Assessment',      icon: CheckCircle, color: '#c89650', supportsContent: false },
-  { value: 'custom',            label: 'Custom',          icon: MapPin,      color: '#9080a8', supportsContent: true  },
+  { value: 'custom',            label: 'Custom',          icon: MapPin,      color: 'var(--text-muted)', supportsContent: true  },
 ];
 
 const CONTENT_TYPE_LABELS = {
@@ -426,15 +428,15 @@ function ContentPicker({ value, onChange }) {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search content library…"
           className="w-full pl-8 pr-3 py-2 rounded-xl text-xs outline-none"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }} />
       </div>
 
       <div className="rounded-xl overflow-hidden"
         style={{ border: '1px solid rgba(170,120,166,0.14)', maxHeight: '180px', overflowY: 'auto' }}>
         {isLoading ? (
-          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>Loading…</div>
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: 'var(--text-ghost)' }}>Loading…</div>
         ) : items.length === 0 ? (
-          <div className="flex items-center justify-center py-6 text-xs" style={{ color: '#5a4870' }}>
+          <div className="flex items-center justify-center py-6 text-xs" style={{ color: 'var(--text-ghost)' }}>
             {search ? 'No matches' : 'No content items yet'}
           </div>
         ) : (
@@ -455,7 +457,7 @@ function ContentPicker({ value, onChange }) {
                 <p className="text-xs font-medium truncate" style={{ color: item.id === value ? '#a0c0f0' : '#d0c8e0' }}>
                   {item.title}
                 </p>
-                <p className="text-xs truncate" style={{ color: '#5a4870' }}>
+                <p className="text-xs truncate" style={{ color: 'var(--text-ghost)' }}>
                   {CONTENT_TYPE_LABELS[item.content_type] || item.content_type}
                   {item.estimated_minutes ? ` · ${item.estimated_minutes}m` : ''}
                 </p>
@@ -470,6 +472,7 @@ function ContentPicker({ value, onChange }) {
 }
 
 function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) {
+  const { theme } = useThemeStore();
   const [form, setForm] = useState({
     ...EMPTY_FORM,
     ...initial,
@@ -534,44 +537,44 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
 
       {/* Title */}
       <div>
-        <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Title *</label>
+        <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Title *</label>
         <input value={form.title} onChange={e => set('title', e.target.value)}
           placeholder={`e.g., ${selectedType.label} #1`}
           className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Description</label>
+        <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)}
           rows={2} placeholder="What participants will do or learn…"
           className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
       </div>
 
       {/* Date + Start Time + End Time + Duration (auto) */}
       <div className="grid grid-cols-4 gap-3">
         <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Date</label>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Date</label>
           <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)', colorScheme: theme }} />
         </div>
         <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Start Time</label>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Start Time</label>
           <input type="time" value={form.scheduled_time} onChange={e => set('scheduled_time', e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)', colorScheme: theme }} />
         </div>
         <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>End Time</label>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>End Time</label>
           <input type="time" value={form.scheduled_end_time} onChange={e => set('scheduled_end_time', e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc', colorScheme: 'dark' }} />
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)', colorScheme: theme }} />
         </div>
         <div>
-          <label className="block text-xs mb-1.5 font-medium flex items-center gap-1" style={{ color: '#9080a8' }}>
+          <label className="block text-xs mb-1.5 font-medium flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
             Duration (min)
             {form.scheduled_time && form.scheduled_end_time && (
               <span className="text-xs normal-case font-normal" style={{ color: '#64c878' }}>auto</span>
@@ -583,7 +586,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
             style={{
               background: form.scheduled_time && form.scheduled_end_time ? 'rgba(100,200,120,0.06)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${form.scheduled_time && form.scheduled_end_time ? 'rgba(100,200,120,0.25)' : 'rgba(170,120,166,0.2)'}`,
-              color: '#f0e8fc',
+              color: 'var(--text-heading)',
             }} />
         </div>
       </div>
@@ -592,18 +595,18 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
       {form.intervention_type === 'virtual_session' && (
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Session Link</label>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Session Link</label>
             <input value={form.virtual_session_link} onChange={e => set('virtual_session_link', e.target.value)}
               placeholder="https://zoom.us/j/..."
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
           <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Platform</label>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Platform</label>
             <input value={form.virtual_session_platform} onChange={e => set('virtual_session_platform', e.target.value)}
               placeholder="Zoom / Teams…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
         </div>
       )}
@@ -618,26 +621,26 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Venue / Location</label>
+              <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Venue / Location</label>
               <input value={form.location} onChange={e => set('location', e.target.value)}
                 placeholder="e.g., ITC Grand Chola, Chennai"
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: 'var(--text-heading)' }} />
             </div>
             <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Facilitator</label>
+              <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Facilitator</label>
               <input value={form.offline_facilitator} onChange={e => set('offline_facilitator', e.target.value)}
                 placeholder="Facilitator name"
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: 'var(--text-heading)' }} />
             </div>
           </div>
           <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Address / How to reach</label>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Address / How to reach</label>
             <textarea value={form.virtual_session_link} onChange={e => set('virtual_session_link', e.target.value)}
               rows={2} placeholder="Full address, landmark, parking instructions…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(200,100,150,0.2)', color: 'var(--text-heading)' }} />
           </div>
         </div>
       )}
@@ -649,13 +652,13 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
           <div className="flex items-center gap-2">
             <Users size={13} style={{ color: '#64c8b4' }} />
             <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#64c8b4' }}>Participant Groups</span>
-            <span className="ml-auto text-xs" style={{ color: '#5a4870' }}>
+            <span className="ml-auto text-xs" style={{ color: 'var(--text-ghost)' }}>
               {form.participant_groups.length} group{form.participant_groups.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {form.participant_groups.length === 0 ? (
-            <p className="text-xs text-center py-3" style={{ color: '#5a4870' }}>
+            <p className="text-xs text-center py-3" style={{ color: 'var(--text-ghost)' }}>
               No groups yet — add groups below and give each one a name and activity details.
             </p>
           ) : (
@@ -673,10 +676,10 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
                       onChange={e => updateGroup(group.id, 'name', e.target.value)}
                       placeholder="Group name"
                       className="flex-1 px-2.5 py-1.5 rounded-lg text-sm outline-none font-medium"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${group.color}40`, color: '#f0e8fc' }} />
+                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${group.color}40`, color: 'var(--text-heading)' }} />
                     <button onClick={() => removeGroup(group.id)}
                       className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
-                      style={{ color: '#7060a0' }}
+                      style={{ color: 'var(--text-faint)' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#e05065'; e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = '#7060a0'; e.currentTarget.style.background = ''; }}>
                       <Trash2 size={13} />
@@ -688,7 +691,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
                     rows={2}
                     placeholder="Activity details, instructions, or goals for this group…"
                     className="w-full px-2.5 py-2 rounded-lg text-xs outline-none resize-none"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${group.color}25`, color: '#d0c8e0' }} />
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${group.color}25`, color: 'var(--text-secondary)' }} />
                 </div>
               ))}
             </div>
@@ -738,12 +741,12 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
               Link Assessment from Library
             </span>
             {!form.assessment_id && (
-              <span className="text-xs ml-auto" style={{ color: '#7060a0' }}>Optional</span>
+              <span className="text-xs ml-auto" style={{ color: 'var(--text-faint)' }}>Optional</span>
             )}
           </div>
           <AssessmentPicker value={form.assessment_id} onChange={v => set('assessment_id', v)} />
           {form.assessment_id && (
-            <p className="text-xs mt-2" style={{ color: '#7060a0' }}>
+            <p className="text-xs mt-2" style={{ color: 'var(--text-faint)' }}>
               This assessment will be automatically assigned to all participants in this cohort.
             </p>
           )}
@@ -753,7 +756,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
       {/* Advanced */}
       <button onClick={() => setShowAdvanced(s => !s)}
         className="flex items-center gap-1.5 text-xs transition-colors"
-        style={{ color: '#7060a0' }}
+        style={{ color: 'var(--text-faint)' }}
         onMouseEnter={e => e.currentTarget.style.color = '#aa78a6'}
         onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
         {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -764,11 +767,11 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
           className="space-y-3">
           <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: '#9080a8' }}>Facilitator Notes (private)</label>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>Facilitator Notes (private)</label>
             <textarea value={form.facilitator_notes} onChange={e => set('facilitator_notes', e.target.value)}
               rows={2} placeholder="Notes visible only to admins…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
           <div className="flex gap-4 items-center">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -778,7 +781,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
             </label>
             <select value={form.status} onChange={e => set('status', e.target.value)}
               className="px-3 py-1.5 rounded-lg text-xs outline-none ml-4"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}>
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}>
               <option value="published">Published</option>
               <option value="draft">Draft</option>
             </select>
@@ -790,7 +793,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
       <div className="flex justify-end gap-2 pt-2">
         <button onClick={onCancel}
           className="px-4 py-2 rounded-xl text-sm transition-all"
-          style={{ color: '#7060a0', border: '1px solid rgba(170,120,166,0.18)' }}
+          style={{ color: 'var(--text-faint)', border: '1px solid rgba(170,120,166,0.18)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
           onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
           Cancel
@@ -805,7 +808,7 @@ function InterventionForm({ initial = EMPTY_FORM, onSave, onCancel, isSaving }) 
 }
 
 // ── Intervention Row ─────────────────────────────────────────────────────────
-function InterventionRow({ iv, index, onEdit, onDelete }) {
+function InterventionRow({ iv, index, onEdit, onDelete, onTogglePublic }) {
   const typeInfo = TYPE_MAP[iv.intervention_type] || INTERVENTION_TYPES[INTERVENTION_TYPES.length - 1];
   const Icon = typeInfo.icon;
   const hasContent = iv.content_items;
@@ -815,7 +818,7 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
     <div className="flex items-start gap-3 p-4 rounded-2xl group"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.12)' }}>
       <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
-        <span className="text-xs font-bold w-5 text-right" style={{ color: '#5a4870' }}>{index + 1}</span>
+        <span className="text-xs font-bold w-5 text-right" style={{ color: 'var(--text-ghost)' }}>{index + 1}</span>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center"
           style={{ background: `${typeInfo.color}1a`, border: `1px solid ${typeInfo.color}40` }}>
           <Icon size={15} style={{ color: typeInfo.color }} />
@@ -824,14 +827,14 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm" style={{ color: '#f0e8fc' }}>{iv.title}</span>
+          <span className="font-medium text-sm" style={{ color: 'var(--text-heading)' }}>{iv.title}</span>
           <span className="text-xs px-2 py-0.5 rounded-full"
             style={{ background: `${typeInfo.color}18`, color: typeInfo.color }}>
             {typeInfo.label}
           </span>
           {iv.status === 'draft' && (
             <span className="text-xs px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(170,120,166,0.1)', color: '#7060a0' }}>Draft</span>
+              style={{ background: 'rgba(170,120,166,0.1)', color: 'var(--text-faint)' }}>Draft</span>
           )}
           {hasContent && (
             <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
@@ -847,13 +850,13 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
           )}
           {iv.intervention_type === 'assessment_window' && !hasAssessment && (
             <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
-              style={{ background: 'rgba(170,120,166,0.08)', color: '#7060a0', border: '1px solid rgba(170,120,166,0.15)' }}>
+              style={{ background: 'rgba(170,120,166,0.08)', color: 'var(--text-faint)', border: '1px solid rgba(170,120,166,0.15)' }}>
               <Brain size={9} /> No assessment linked
             </span>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3 mt-1.5 text-xs" style={{ color: '#7060a0' }}>
+        <div className="flex flex-wrap gap-3 mt-1.5 text-xs" style={{ color: 'var(--text-faint)' }}>
           {iv.scheduled_date && (
             <span className="flex items-center gap-1">
               <Calendar size={11} />
@@ -889,21 +892,32 @@ function InterventionRow({ iv, index, onEdit, onDelete }) {
         </div>
 
         {iv.description && (
-          <p className="text-xs mt-1.5 line-clamp-2" style={{ color: '#7060a0' }}>{iv.description}</p>
+          <p className="text-xs mt-1.5 line-clamp-2" style={{ color: 'var(--text-faint)' }}>{iv.description}</p>
         )}
       </div>
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        {onTogglePublic && (
+          <button
+            onClick={() => onTogglePublic(iv.id, !iv.is_public)}
+            title={iv.is_public ? 'Make private' : 'Make public'}
+            className="p-1.5 rounded-lg transition-all"
+            style={{ color: iv.is_public ? '#40c980' : 'var(--text-muted)', background: iv.is_public ? 'rgba(64,201,128,0.1)' : '' }}
+            onMouseEnter={e => { e.currentTarget.style.background = iv.is_public ? 'rgba(64,201,128,0.15)' : 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = iv.is_public ? '#40c980' : '#aa78a6'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = iv.is_public ? 'rgba(64,201,128,0.1)' : ''; e.currentTarget.style.color = iv.is_public ? '#40c980' : '#9080a8'; }}>
+            {iv.is_public ? <Globe size={14} /> : <Lock size={14} />}
+          </button>
+        )}
         <button onClick={() => onEdit(iv)}
           className="p-1.5 rounded-lg transition-all"
-          style={{ color: '#9080a8' }}
+          style={{ color: 'var(--text-muted)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.15)'; e.currentTarget.style.color = '#f0e8fc'; }}
           onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#9080a8'; }}>
           <Edit2 size={14} />
         </button>
         <button onClick={() => onDelete(iv.id)}
           className="p-1.5 rounded-lg transition-all"
-          style={{ color: '#9080a8' }}
+          style={{ color: 'var(--text-muted)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.12)'; e.currentTarget.style.color = '#e05065'; }}
           onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#9080a8'; }}>
           <Trash2 size={14} />
@@ -939,8 +953,8 @@ function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabe
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold" style={{ color: '#f0e8fc' }}>{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>{title}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
             <X size={16} />
@@ -948,20 +962,20 @@ function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabe
         </div>
 
         <div className="relative mb-3">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search…"
             className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}
             onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
             onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.2)'} />
         </div>
 
         <div className="overflow-y-auto space-y-1 mb-4" style={{ maxHeight: '320px' }}>
           {isLoading ? (
-            <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>Loading…</p>
+            <p className="text-center py-8 text-sm" style={{ color: 'var(--text-ghost)' }}>Loading…</p>
           ) : filtered.length === 0 ? (
-            <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>
+            <p className="text-center py-8 text-sm" style={{ color: 'var(--text-ghost)' }}>
               {items.length === 0 ? 'No published items found' : 'All items already assigned'}
             </p>
           ) : filtered.map(item => {
@@ -977,8 +991,8 @@ function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabe
                   {isSel ? <Check size={13} /> : getLabel(item)[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{getLabel(item)}</p>
-                  <p className="text-xs truncate capitalize" style={{ color: '#7060a0' }}>{getSubLabel(item)}</p>
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>{getLabel(item)}</p>
+                  <p className="text-xs truncate capitalize" style={{ color: 'var(--text-faint)' }}>{getSubLabel(item)}</p>
                 </div>
               </div>
             );
@@ -993,11 +1007,11 @@ function AssignLibraryModal({ title, fetchFn, queryKey, alreadyAssigned, getLabe
         )}
 
         <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(170,120,166,0.12)' }}>
-          <p className="text-sm" style={{ color: '#7060a0' }}>
+          <p className="text-sm" style={{ color: 'var(--text-faint)' }}>
             {selected ? '1 selected' : 'Click to select'}
           </p>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: '#9080a8' }}>Cancel</button>
+            <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
             <button
               disabled={!selected || loading}
               onClick={() => selected && onAssign(selected)}
@@ -1120,8 +1134,8 @@ function ResponseDetailModal({ response, assessment, onClose }) {
             <Eye size={15} style={{ color: '#c89650' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-white leading-tight truncate">{user.name || user.display_name || 'Participant'}</h2>
-            <p className="text-xs mt-0.5 truncate" style={{ color: '#6a5880' }}>{user.email} {user.designation ? `· ${user.designation}` : ''}</p>
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight truncate">{user.name || user.display_name || 'Participant'}</h2>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-ghost)' }}>{user.email} {user.designation ? `· ${user.designation}` : ''}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {response.total_score != null && (
@@ -1129,7 +1143,7 @@ function ResponseDetailModal({ response, assessment, onClose }) {
                 Score: {response.total_score}
               </span>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-ghost)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
               onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}><X size={17} /></button>
           </div>
@@ -1138,7 +1152,7 @@ function ResponseDetailModal({ response, assessment, onClose }) {
         {/* Body — scrollable */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
           {sections.length === 0 ? (
-            <p className="text-sm text-center py-8" style={{ color: '#5a4870' }}>No sections / question structure available.</p>
+            <p className="text-sm text-center py-8" style={{ color: 'var(--text-ghost)' }}>No sections / question structure available.</p>
           ) : sections.map((sec, si) => (
             <div key={si}>
               <h3 className="font-semibold mb-3 text-sm" style={{ color: '#c8a0c4' }}>{sec.title || `Section ${si + 1}`}</h3>
@@ -1149,18 +1163,18 @@ function ResponseDetailModal({ response, assessment, onClose }) {
                   return (
                     <div key={qi} className="rounded-xl p-4 space-y-2"
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.1)' }}>
-                      <p className="text-sm" style={{ color: '#e0d8f0' }}>
-                        <span className="text-xs font-bold mr-2" style={{ color: '#5a4870' }}>{si + 1}.{qi + 1}</span>
+                      <p className="text-sm" style={{ color: 'var(--text-heading)' }}>
+                        <span className="text-xs font-bold mr-2" style={{ color: 'var(--text-ghost)' }}>{si + 1}.{qi + 1}</span>
                         {q.text}
                       </p>
                       {answer == null || answer === '' ? (
-                        <p className="text-xs italic" style={{ color: '#5a4870' }}>No answer provided</p>
+                        <p className="text-xs italic" style={{ color: 'var(--text-ghost)' }}>No answer provided</p>
                       ) : q.type === 'mcq' ? (
                         <div className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(170,120,166,0.1)', color: '#f0c070' }}>
                           {String.fromCharCode(65 + answer)}. {(q.options || [])[answer] || answer}
                         </div>
                       ) : (
-                        <div className="text-sm px-3 py-2 rounded-lg whitespace-pre-wrap" style={{ background: 'rgba(170,120,166,0.08)', color: '#d0c8e0' }}>
+                        <div className="text-sm px-3 py-2 rounded-lg whitespace-pre-wrap" style={{ background: 'rgba(170,120,166,0.08)', color: 'var(--text-secondary)' }}>
                           {String(answer)}
                         </div>
                       )}
@@ -1173,7 +1187,7 @@ function ResponseDetailModal({ response, assessment, onClose }) {
         </div>
 
         <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(170,120,166,0.1)' }}>
-          <div className="flex items-center justify-between text-xs" style={{ color: '#5a4870' }}>
+          <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-ghost)' }}>
             <span>Attempt #{response.attempt_number}</span>
             {response.submitted_at && <span>Submitted {format(new Date(response.submitted_at), 'dd MMM yyyy, HH:mm')}</span>}
           </div>
@@ -1183,8 +1197,29 @@ function ResponseDetailModal({ response, assessment, onClose }) {
   );
 }
 
+
+// ── helpers shared with result card ─────────────────────────────────────────
+function hasAnswersCDP(resp) {
+  const a = resp?.answers;
+  return a && typeof a === 'object' && Object.keys(a).length > 0;
+}
+function getRespLabel(resp) {
+  if (!resp) return 'Not Started';
+  if (resp.status === 'scored') return 'Scored';
+  if (resp.status === 'submitted') return 'Submitted';
+  if (resp.status === 'in_progress' && !hasAnswersCDP(resp)) return 'Not Started';
+  return 'In Progress';
+}
+function getRespStyle(label) {
+  if (label === 'Submitted' || label === 'Scored')
+    return { bg: 'rgba(64,201,128,0.1)', color: '#40c980', border: 'rgba(64,201,128,0.25)' };
+  if (label === 'In Progress')
+    return { bg: 'rgba(200,150,80,0.1)', color: '#c89650', border: 'rgba(200,150,80,0.25)' };
+  return { bg: 'rgba(90,72,112,0.12)', color: '#8a78a8', border: 'rgba(90,72,112,0.2)' };
+}
+
 // ── Per-Assessment Results Panel ──────────────────────────────────────────────
-function AssessmentResultCard({ cohortId, assignment }) {
+function AssessmentResultCard({ cohortId, assignment, enrolledParticipants }) {
   const [expanded, setExpanded] = useState(false);
   const [viewingResponse, setViewingResponse] = useState(null);
 
@@ -1196,9 +1231,26 @@ function AssessmentResultCard({ cohortId, assignment }) {
   });
 
   const asmtInfo = ASSESSMENT_TYPE_MAP[assignment.assessments?.assessment_type] || { label: 'Assessment', color: '#aa78a6' };
-  const submitted = (responses || []).filter(r => r.status === 'submitted' || r.status === 'scored').length;
-  const inProgress = (responses || []).filter(r => r.status === 'in_progress').length;
-  const total = (responses || []).length;
+
+  // Merge enrolled participants with responses for complete view
+  const responseByEnrollment = {};
+  (responses || []).forEach(r => { responseByEnrollment[r.enrollment_id] = r; });
+
+  const rows = (enrolledParticipants || []).map(ep => ({
+    participant: ep.users || {},
+    enrollmentId: ep.id,
+    response: responseByEnrollment[ep.id] || null,
+  }));
+  // Include responses whose enrollment isn't in the enrolled list (edge case)
+  const enrolledIds = new Set((enrolledParticipants || []).map(ep => ep.id));
+  (responses || []).filter(r => !enrolledIds.has(r.enrollment_id)).forEach(r => {
+    rows.push({ participant: r.enrollments?.users || {}, enrollmentId: r.enrollment_id, response: r });
+  });
+
+  const submitted = rows.filter(row => { const l = getRespLabel(row.response); return l === 'Submitted' || l === 'Scored'; }).length;
+  const inProgress = rows.filter(row => getRespLabel(row.response) === 'In Progress').length;
+  const notStarted = rows.filter(row => getRespLabel(row.response) === 'Not Started').length;
+  const total = rows.length;
 
   return (
     <>
@@ -1215,16 +1267,16 @@ function AssessmentResultCard({ cohortId, assignment }) {
           <Brain size={16} style={{ color: asmtInfo.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate" style={{ color: '#f0e8fc' }}>
+          <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-heading)' }}>
             {assignment.assessments?.title || 'Untitled'}
           </p>
-          <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
             <span style={{ color: asmtInfo.color }}>{asmtInfo.label}</span>
             {assignment.assessments?.sections?.length ? ` · ${assignment.assessments.sections.length} section(s)` : ''}
             {assignment.is_mandatory && <span className="ml-2" style={{ color: '#f59e0b' }}>Mandatory</span>}
           </p>
         </div>
-        {expanded && responses && (
+        {expanded && !isLoading && (
           <div className="flex items-center gap-3 flex-shrink-0 text-xs">
             <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(64,201,128,0.1)', color: '#40c980', border: '1px solid rgba(64,201,128,0.2)' }}>
               {submitted} submitted
@@ -1234,17 +1286,24 @@ function AssessmentResultCard({ cohortId, assignment }) {
                 {inProgress} in progress
               </span>
             )}
-            <button
-              onClick={e => { e.stopPropagation(); exportResponsesXLSX(assignment.assessments?.title || 'assessment', responses, assignment); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors"
-              style={{ background: 'rgba(100,150,220,0.12)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.25)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,150,220,0.22)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,150,220,0.12)'}>
-              <Download size={12} /> Export Excel
-            </button>
+            {notStarted > 0 && (
+              <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(90,72,112,0.12)', color: '#8a78a8', border: '1px solid rgba(90,72,112,0.2)' }}>
+                {notStarted} not started
+              </span>
+            )}
+            {total > 0 && (
+              <button
+                onClick={e => { e.stopPropagation(); exportResponsesXLSX(assignment.assessments?.title || 'assessment', rows.filter(row => row.response).map(row => ({ ...row.response, enrollments: { users: row.participant } })), assignment); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                style={{ background: 'rgba(100,150,220,0.12)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.25)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,150,220,0.22)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,150,220,0.12)'}>
+                <Download size={12} /> Export Excel
+              </button>
+            )}
           </div>
         )}
-        <span style={{ color: '#5a4870', flexShrink: 0 }}>
+        <span style={{ color: 'var(--text-ghost)', flexShrink: 0 }}>
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
       </div>
@@ -1255,14 +1314,14 @@ function AssessmentResultCard({ cohortId, assignment }) {
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden', borderTop: '1px solid rgba(170,120,166,0.1)' }}>
             {isLoading ? (
-              <div className="flex items-center justify-center py-10 text-sm" style={{ color: '#5a4870' }}>
+              <div className="flex items-center justify-center py-10 text-sm" style={{ color: 'var(--text-ghost)' }}>
                 <div className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin mr-2" />
                 Loading responses…
               </div>
-            ) : !responses?.length ? (
-              <div className="py-10 text-center" style={{ color: '#5a4870' }}>
+            ) : rows.length === 0 ? (
+              <div className="py-10 text-center" style={{ color: 'var(--text-ghost)' }}>
                 <Brain size={32} className="mx-auto mb-3 opacity-20" />
-                <p className="text-sm">No responses yet. Participants haven't started this assessment.</p>
+                <p className="text-sm">No participants enrolled in this cohort yet.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1270,16 +1329,20 @@ function AssessmentResultCard({ cohortId, assignment }) {
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(170,120,166,0.12)', background: 'rgba(170,120,166,0.05)' }}>
                       {['Participant', 'Department', 'Status', 'Score', 'Attempt', 'Submitted At', ''].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#7060a0' }}>{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {responses.map(r => {
-                      const u = r.enrollments?.users || {};
-                      const isSubmitted = r.status === 'submitted' || r.status === 'scored';
+                    {rows.map((row, idx) => {
+                      const u = row.participant;
+                      const r = row.response;
+                      const label = getRespLabel(r);
+                      const st = getRespStyle(label);
+                      const canView = (label === 'Submitted' || label === 'Scored') && hasAnswersCDP(r);
+                      const modalResp = r ? { ...r, enrollments: { users: u } } : null;
                       return (
-                        <tr key={r.id} style={{ borderBottom: '1px solid rgba(170,120,166,0.08)' }}
+                        <tr key={row.enrollmentId || idx} style={{ borderBottom: '1px solid rgba(170,120,166,0.08)' }}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                           onMouseLeave={e => e.currentTarget.style.background = ''}>
                           <td className="px-4 py-3">
@@ -1289,32 +1352,30 @@ function AssessmentResultCard({ cohortId, assignment }) {
                                 {(u.name || u.display_name || '?')[0]}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-medium truncate" style={{ color: '#f0e8fc' }}>{u.name || u.display_name || '—'}</p>
-                                <p className="text-xs truncate" style={{ color: '#7060a0' }}>{u.email}</p>
+                                <p className="font-medium truncate" style={{ color: 'var(--text-heading)' }}>{u.name || u.display_name || '—'}</p>
+                                <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>{u.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-xs" style={{ color: '#9080a8' }}>{u.department || '—'}</td>
+                          <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>{u.department || '—'}</td>
                           <td className="px-4 py-3">
                             <span className="text-xs px-2 py-1 rounded-full font-medium"
-                              style={{
-                                background: isSubmitted ? 'rgba(64,201,128,0.1)' : r.status === 'in_progress' ? 'rgba(200,150,80,0.1)' : 'rgba(170,120,166,0.08)',
-                                color: isSubmitted ? '#40c980' : r.status === 'in_progress' ? '#c89650' : '#7060a0',
-                                border: `1px solid ${isSubmitted ? 'rgba(64,201,128,0.25)' : r.status === 'in_progress' ? 'rgba(200,150,80,0.25)' : 'rgba(170,120,166,0.15)'}`,
-                              }}>
-                              {r.status === 'in_progress' ? 'In Progress' : r.status === 'submitted' ? 'Submitted' : r.status === 'scored' ? 'Scored' : r.status}
+                              style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
+                              {label}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm font-semibold" style={{ color: r.total_score != null ? '#f0e8fc' : '#5a4870' }}>
-                            {r.total_score != null ? r.total_score : '—'}
+                          <td className="px-4 py-3 text-sm font-semibold" style={{ color: r?.total_score != null ? 'var(--text-heading)' : 'var(--text-ghost)' }}>
+                            {r?.total_score != null ? r.total_score : '—'}
                           </td>
-                          <td className="px-4 py-3 text-xs text-center" style={{ color: '#9080a8' }}>#{r.attempt_number}</td>
-                          <td className="px-4 py-3 text-xs" style={{ color: '#9080a8' }}>
-                            {r.submitted_at ? format(new Date(r.submitted_at), 'dd MMM yyyy, HH:mm') : '—'}
+                          <td className="px-4 py-3 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                            {r?.attempt_number ? `#${r?.attempt_number}` : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {r?.submitted_at ? format(new Date(r.submitted_at), 'dd MMM yyyy, HH:mm') : '—'}
                           </td>
                           <td className="px-4 py-3">
-                            {isSubmitted && (
-                              <button onClick={() => setViewingResponse(r)}
+                            {canView && (
+                              <button onClick={() => setViewingResponse(modalResp)}
                                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
                                 style={{ color: '#aa78a6', border: '1px solid rgba(170,120,166,0.2)' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = '#f0e8fc'; }}
@@ -1369,8 +1430,8 @@ function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, er
         style={{ background: '#140e24', border: '1px solid rgba(170,120,166,0.25)' }}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold" style={{ color: '#f0e8fc' }}>Enroll Participants</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>Enroll Participants</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
             <X size={16} />
@@ -1379,11 +1440,11 @@ function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, er
 
         {/* Search */}
         <div className="relative mb-3">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, email or department…"
             className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}
             onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
             onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.2)'} />
         </div>
@@ -1391,7 +1452,7 @@ function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, er
         {/* List */}
         <div className="overflow-y-auto space-y-1 mb-4" style={{ maxHeight: '320px' }}>
           {filtered.length === 0 ? (
-            <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>
+            <p className="text-center py-8 text-sm" style={{ color: 'var(--text-ghost)' }}>
               {allParticipants.length === 0 ? 'Loading participants…' : 'No participants found'}
             </p>
           ) : filtered.map(p => {
@@ -1407,8 +1468,8 @@ function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, er
                   {isSelected ? <Check size={13} /> : p.name?.[0] || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{p.name}</p>
-                  <p className="text-xs truncate" style={{ color: '#7060a0' }}>
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>{p.name}</p>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>
                     {p.email}{p.designation ? ` · ${p.designation}` : ''}{p.department ? ` · ${p.department}` : ''}
                   </p>
                 </div>
@@ -1428,11 +1489,11 @@ function EnrollModal({ allParticipants, enrolled, onEnroll, onClose, loading, er
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(170,120,166,0.12)' }}>
-          <p className="text-sm" style={{ color: '#7060a0' }}>
+          <p className="text-sm" style={{ color: 'var(--text-faint)' }}>
             {selected.length > 0 ? `${selected.length} selected` : 'Click to select participants'}
           </p>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: '#9080a8' }}>Cancel</button>
+            <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
             <button
               disabled={!selected.length || loading}
               onClick={() => onEnroll(selected)}
@@ -1481,14 +1542,53 @@ export default function CohortDetailPage() {
   });
 
   const removeAssessmentMutation = useMutation({
-    mutationFn: (assignId) => api.delete(`/cohorts/${id}/assessments/${assignId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-assessments', id] }),
+    mutationFn: ({ assignId, force = false }) =>
+      api.delete(`/cohorts/${id}/assessments/${assignId}${force ? '?force=true' : ''}`),
+    onSuccess: () => {
+      setRemoveConfirm(null);
+      qc.invalidateQueries({ queryKey: ['cohort-assessments', id] });
+    },
+    onError: (err) => {
+      const errData = err.response?.data?.error;
+      if (errData?.code === 'HAS_RESPONSES') {
+        setRemoveConfirm(prev => prev
+          ? { ...prev, step: 'force', count: errData.count, message: errData.message }
+          : null
+        );
+      }
+    },
   });
 
   const removeContentMutation = useMutation({
     mutationFn: (assignId) => api.delete(`/cohorts/${id}/content/${assignId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-content', id] }),
   });
+
+  const toggleInterventionPublicMutation = useMutation({
+    mutationFn: ({ ivId, is_public }) => api.patch(`/cohorts/${id}/journey/interventions/${ivId}`, { is_public }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-journey', id] }),
+  });
+  const toggleAssessmentPublicMutation = useMutation({
+    mutationFn: ({ assignId, is_public }) => api.patch(`/cohorts/${id}/assessments/${assignId}`, { is_public }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-assessments', id] }),
+  });
+  const toggleContentPublicMutation = useMutation({
+    mutationFn: ({ assignId, is_public }) => api.patch(`/cohorts/${id}/content/${assignId}`, { is_public }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort-content', id] }),
+  });
+
+  const [publicCopied, setPublicCopied] = useState(false);
+  const publicToggleMutation = useMutation({
+    mutationFn: (val) => api.patch(`/cohorts/${id}`, { is_public: val }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cohort', id] }),
+  });
+  const copyPublicLink = () => {
+    const url = `${window.location.origin}/c/${id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setPublicCopied(true);
+      setTimeout(() => setPublicCopied(false), 2000);
+    });
+  };
 
   // ── Assignment modals state ───────────────────────────────────────────────
   const [showAssignAssessmentModal, setShowAssignAssessmentModal] = useState(false);
@@ -1510,6 +1610,8 @@ export default function CohortDetailPage() {
   // ── Participants tab state ─────────────────────────────────────────────────
   const [enrollSearch, setEnrollSearch] = useState('');
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  // Remove-assessment confirm dialog: { assignId, title, step: 'confirm'|'force', count, message }
+  const [removeConfirm, setRemoveConfirm] = useState(null);
 
   const { data: enrollments, isLoading: loadingEnrollments, isError: enrollmentsError } = useQuery({
     queryKey: ['cohort-enrollments', id],
@@ -1595,7 +1697,7 @@ export default function CohortDetailPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 page-enter">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm transition-colors"
-        style={{ color: '#7060a0' }}
+        style={{ color: 'var(--text-faint)' }}
         onMouseEnter={e => e.currentTarget.style.color = '#e8e0f0'}
         onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
         <ArrowLeft size={16} /> Back to Cohorts
@@ -1606,10 +1708,41 @@ export default function CohortDetailPage() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <p className="text-xs font-mono mb-1" style={{ color: '#aa78a6' }}>{cohort?.cohort_code}</p>
-            <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>{cohort?.name}</h1>
-            <p className="mt-1" style={{ color: '#7060a0' }}>{cohort?.organizations?.display_name}</p>
+            <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>{cohort?.name}</h1>
+            <p className="mt-1" style={{ color: 'var(--text-faint)' }}>{cohort?.organizations?.display_name}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap items-center">
+            {/* Public toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => publicToggleMutation.mutate(!cohort?.is_public)}
+                disabled={publicToggleMutation.isPending}
+                title={cohort?.is_public ? 'Disable public page' : 'Enable public page'}
+                className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl font-medium transition-all disabled:opacity-50"
+                style={{
+                  background: cohort?.is_public ? 'rgba(64,201,128,0.12)' : 'rgba(170,120,166,0.08)',
+                  color: cohort?.is_public ? '#40c980' : 'var(--text-muted)',
+                  border: `1px solid ${cohort?.is_public ? 'rgba(64,201,128,0.3)' : 'rgba(170,120,166,0.2)'}`,
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                {cohort?.is_public ? <Globe size={14} /> : <Lock size={14} />}
+                {cohort?.is_public ? 'Public' : 'Private'}
+              </button>
+              {cohort?.is_public && (
+                <button
+                  onClick={copyPublicLink}
+                  title="Copy public link"
+                  className="flex items-center gap-1.5 text-xs px-2.5 py-2 rounded-xl transition-all"
+                  style={{
+                    background: publicCopied ? 'rgba(64,201,128,0.12)' : 'rgba(170,120,166,0.08)',
+                    color: publicCopied ? '#40c980' : 'var(--text-faint)',
+                    border: `1px solid ${publicCopied ? 'rgba(64,201,128,0.3)' : 'rgba(170,120,166,0.18)'}`,
+                  }}>
+                  {publicCopied ? <><Check size={12} /> Copied!</> : <><LinkIcon size={12} /> Copy Link</>}
+                </button>
+              )}
+            </div>
             <button onClick={() => setShowEditCohort(true)}
               className="btn-ghost flex items-center gap-2 text-sm">
               <Edit2 size={15} /> Edit
@@ -1651,10 +1784,10 @@ export default function CohortDetailPage() {
             <div key={label} className="rounded-xl p-4"
               style={{ background: 'rgba(170,120,166,0.05)', border: '1px solid rgba(170,120,166,0.14)' }}>
               <div className="flex items-center gap-2 mb-1">
-                <Icon size={14} style={{ color: '#7060a0' }} />
-                <p className="text-xs uppercase tracking-wider" style={{ color: '#7060a0' }}>{label}</p>
+                <Icon size={14} style={{ color: 'var(--text-faint)' }} />
+                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{label}</p>
               </div>
-              <p className="font-semibold capitalize" style={{ color: '#f0e8fc' }}>{value}</p>
+              <p className="font-semibold capitalize" style={{ color: 'var(--text-heading)' }}>{value}</p>
             </div>
           ))}
         </div>
@@ -1694,7 +1827,7 @@ export default function CohortDetailPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6">
           <div className="flex items-center gap-3 mb-5">
             <Users size={18} style={{ color: '#aa78a6' }} />
-            <h2 className="text-lg font-semibold flex-1" style={{ color: '#f0e8fc' }}>Enrolled Participants</h2>
+            <h2 className="text-lg font-semibold flex-1" style={{ color: 'var(--text-heading)' }}>Enrolled Participants</h2>
             <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
               {enrollments?.length ?? 0}
             </span>
@@ -1709,24 +1842,24 @@ export default function CohortDetailPage() {
 
           {/* Search filter */}
           <div className="relative mb-4">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
             <input value={enrollSearch} onChange={e => setEnrollSearch(e.target.value)}
               placeholder="Filter by name or email…"
               className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }}
               onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
               onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'} />
           </div>
 
           {loadingEnrollments ? (
-            <div className="text-center py-10" style={{ color: '#5a4870' }}>Loading…</div>
+            <div className="text-center py-10" style={{ color: 'var(--text-ghost)' }}>Loading…</div>
           ) : enrollmentsError ? (
             <div className="text-center py-10 flex flex-col items-center gap-2" style={{ color: '#e05065' }}>
               <AlertCircle size={28} className="opacity-60" />
               <p className="text-sm">Failed to load participants. Restart the server and refresh.</p>
             </div>
           ) : !enrollments?.length ? (
-            <div className="text-center py-12" style={{ color: '#5a4870' }}>
+            <div className="text-center py-12" style={{ color: 'var(--text-ghost)' }}>
               <Users size={40} className="mx-auto mb-3 opacity-20" />
               <p className="text-sm">No participants enrolled yet.</p>
               <p className="text-xs mt-1">Click "Enroll Participants" to add people to this cohort.</p>
@@ -1737,7 +1870,7 @@ export default function CohortDetailPage() {
               !q || e.users?.name?.toLowerCase().includes(q) || e.users?.email?.toLowerCase().includes(q)
             );
             return filtered.length === 0 ? (
-              <div className="text-center py-8" style={{ color: '#5a4870' }}>No participants match "{enrollSearch}"</div>
+              <div className="text-center py-8" style={{ color: 'var(--text-ghost)' }}>No participants match "{enrollSearch}"</div>
             ) : (
               <div className="space-y-2">
                 {filtered.map(e => (
@@ -1748,18 +1881,18 @@ export default function CohortDetailPage() {
                       {e.users?.name?.[0] || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{e.users?.name || '—'}</p>
-                      <p className="text-xs truncate" style={{ color: '#7060a0' }}>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>{e.users?.name || '—'}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>
                         {e.users?.email}
                         {e.users?.designation && ` · ${e.users.designation}`}
                         {e.users?.department && ` · ${e.users.department}`}
                       </p>
                     </div>
-                    <span className="text-xs flex-shrink-0" style={{ color: '#5a4870' }}>
+                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-ghost)' }}>
                       Enrolled {e.enrolled_at ? format(new Date(e.enrolled_at), 'd MMM yyyy') : '—'}
                     </span>
                     <button onClick={() => { if (confirm(`Remove ${e.users?.name} from this cohort?`)) removeEnrollMutation.mutate(e.id); }}
-                      className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: '#9080a8' }}
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: 'var(--text-muted)' }}
                       onMouseEnter={ev => { ev.currentTarget.style.color = '#e05065'; ev.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
                       onMouseLeave={ev => { ev.currentTarget.style.color = '#9080a8'; ev.currentTarget.style.background = ''; }}>
                       <Trash2 size={14} />
@@ -1788,7 +1921,7 @@ export default function CohortDetailPage() {
 
       {tab === 'Overview' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 space-y-4">
-          <h2 className="font-semibold" style={{ color: '#f0e8fc' }}>Program Configuration</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--text-heading)' }}>Program Configuration</h2>
           <div className="grid gap-3">
             {[
               { label: 'Program Type',          value: cohort?.program_type?.replace(/_/g, ' ') },
@@ -1801,8 +1934,8 @@ export default function CohortDetailPage() {
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between py-2.5 px-3 rounded-lg gap-4"
                 style={{ background: 'rgba(170,120,166,0.04)', border: '1px solid rgba(170,120,166,0.08)' }}>
-                <span className="text-sm" style={{ color: '#7060a0' }}>{label}</span>
-                <span className="text-sm font-medium capitalize text-right" style={{ color: '#e0d8f0' }}>{value}</span>
+                <span className="text-sm" style={{ color: 'var(--text-faint)' }}>{label}</span>
+                <span className="text-sm font-medium capitalize text-right" style={{ color: 'var(--text-heading)' }}>{value}</span>
               </div>
             ))}
           </div>
@@ -1814,8 +1947,8 @@ export default function CohortDetailPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Learning Journey</h2>
-              <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-heading)' }}>Learning Journey</h2>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                 Design the sequence of interventions participants will experience.
               </p>
             </div>
@@ -1848,8 +1981,8 @@ export default function CohortDetailPage() {
           ) : interventions.length === 0 && !showAddForm ? (
             <div className="glass-card p-14 text-center">
               <Layers size={44} className="mx-auto mb-4" style={{ color: '#3e2860' }} />
-              <h3 className="font-semibold mb-1" style={{ color: '#9080a8' }}>No interventions yet</h3>
-              <p className="text-sm mb-5" style={{ color: '#5a4870' }}>
+              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>No interventions yet</h3>
+              <p className="text-sm mb-5" style={{ color: 'var(--text-ghost)' }}>
                 Start building the learning journey by adding the first intervention.
               </p>
               <button onClick={() => setShowAddForm(true)}
@@ -1875,6 +2008,7 @@ export default function CohortDetailPage() {
                       onDelete={(ivId) => {
                         if (window.confirm('Delete this intervention?')) deleteMutation.mutate(ivId);
                       }}
+                      onTogglePublic={(ivId, val) => toggleInterventionPublicMutation.mutate({ ivId, is_public: val })}
                     />
                   )}
                 </div>
@@ -1885,7 +2019,7 @@ export default function CohortDetailPage() {
           {interventions.length > 0 && !showAddForm && !editingIntervention && (
             <button onClick={() => setShowAddForm(true)}
               className="w-full py-3 rounded-2xl text-sm flex items-center justify-center gap-2 transition-all duration-200"
-              style={{ color: '#7060a0', border: '1px dashed rgba(170,120,166,0.25)' }}
+              style={{ color: 'var(--text-faint)', border: '1px dashed rgba(170,120,166,0.25)' }}
               onMouseEnter={e => { e.currentTarget.style.color = '#aa78a6'; e.currentTarget.style.borderColor = 'rgba(170,120,166,0.5)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = '#7060a0'; e.currentTarget.style.borderColor = 'rgba(170,120,166,0.25)'; }}>
               <Plus size={15} /> Add another intervention
@@ -1902,7 +2036,7 @@ export default function CohortDetailPage() {
           <div className="glass-card p-6">
             <div className="flex items-center gap-2 mb-5">
               <Brain size={18} style={{ color: '#aa78a6' }} />
-              <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Assigned Assessments</h2>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-heading)' }}>Assigned Assessments</h2>
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
                 {assignedAssessments?.length ?? 0}
               </span>
@@ -1915,9 +2049,9 @@ export default function CohortDetailPage() {
               </button>
             </div>
             {loadingAsmts ? (
-              <div className="text-center py-8" style={{ color: '#5a4870' }}>Loading…</div>
+              <div className="text-center py-8" style={{ color: 'var(--text-ghost)' }}>Loading…</div>
             ) : !assignedAssessments?.length ? (
-              <div className="text-center py-10" style={{ color: '#5a4870' }}>
+              <div className="text-center py-10" style={{ color: 'var(--text-ghost)' }}>
                 <Brain size={36} className="mx-auto mb-3 opacity-25" />
                 <p className="text-sm">No assessments assigned yet. Use the Assessments library to assign.</p>
               </div>
@@ -1933,10 +2067,10 @@ export default function CohortDetailPage() {
                         {typeInfo.label}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>
                           {a.assessments?.title || 'Untitled'}
                         </p>
-                        <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                           {a.assessments?.sections?.length ?? 0} section(s)
                           {a.access_open_at && ` · Opens ${format(parseISO(a.access_open_at), 'd MMM yyyy')}`}
                           {a.access_close_at && ` · Closes ${format(parseISO(a.access_close_at), 'd MMM yyyy')}`}
@@ -1944,9 +2078,19 @@ export default function CohortDetailPage() {
                         </p>
                       </div>
                       <button
-                        onClick={() => { if (confirm('Remove this assessment from cohort?')) removeAssessmentMutation.mutate(a.id); }}
+                        onClick={() => toggleAssessmentPublicMutation.mutate({ assignId: a.id, is_public: !a.is_public })}
+                        title={a.is_public ? 'Make private' : 'Make public on cohort page'}
+                        disabled={toggleAssessmentPublicMutation.isPending}
+                        className="p-1.5 rounded-lg transition-all flex-shrink-0"
+                        style={{ color: a.is_public ? '#40c980' : 'var(--text-muted)', background: a.is_public ? 'rgba(64,201,128,0.1)' : '' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = a.is_public ? 'rgba(64,201,128,0.15)' : 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = a.is_public ? '#40c980' : '#aa78a6'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = a.is_public ? 'rgba(64,201,128,0.1)' : ''; e.currentTarget.style.color = a.is_public ? '#40c980' : '#9080a8'; }}>
+                        {a.is_public ? <Globe size={14} /> : <Lock size={14} />}
+                      </button>
+                      <button
+                        onClick={() => setRemoveConfirm({ assignId: a.id, title: a.assessments?.title || 'this assessment', step: 'confirm' })}
                         className="p-1.5 rounded-lg transition-colors flex-shrink-0"
-                        style={{ color: '#9080a8' }}
+                        style={{ color: 'var(--text-muted)' }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#e05065'; e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = '#9080a8'; e.currentTarget.style.background = ''; }}>
                         <Trash2 size={14} />
@@ -1962,7 +2106,7 @@ export default function CohortDetailPage() {
           <div className="glass-card p-6">
             <div className="flex items-center gap-2 mb-5">
               <Target size={18} style={{ color: '#aa78a6' }} />
-              <h2 className="text-lg font-semibold" style={{ color: '#f0e8fc' }}>Assigned Content</h2>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-heading)' }}>Assigned Content</h2>
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
                 {assignedContent?.length ?? 0}
               </span>
@@ -1975,9 +2119,9 @@ export default function CohortDetailPage() {
               </button>
             </div>
             {loadingContent ? (
-              <div className="text-center py-8" style={{ color: '#5a4870' }}>Loading…</div>
+              <div className="text-center py-8" style={{ color: 'var(--text-ghost)' }}>Loading…</div>
             ) : !assignedContent?.length ? (
-              <div className="text-center py-10" style={{ color: '#5a4870' }}>
+              <div className="text-center py-10" style={{ color: 'var(--text-ghost)' }}>
                 <Target size={36} className="mx-auto mb-3 opacity-25" />
                 <p className="text-sm">No content assigned yet. Use the Content library to assign.</p>
               </div>
@@ -1995,7 +2139,7 @@ export default function CohortDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>
                             {c.content_items?.title || 'Untitled'}
                           </p>
                           {c.sequence_order != null && (
@@ -2007,7 +2151,7 @@ export default function CohortDetailPage() {
                             <span className="text-xs" style={{ color: '#f59e0b' }}>Mandatory</span>
                           )}
                         </div>
-                        <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                           {typeInfo.label}
                           {c.module_name && ` · ${c.module_name}`}
                           {c.content_items?.estimated_minutes && ` · ${c.content_items.estimated_minutes} min`}
@@ -2016,16 +2160,26 @@ export default function CohortDetailPage() {
                       </div>
                       {(c.content_items?.external_url || c.content_items?.file_url) && (
                         <a href={c.content_items.external_url || c.content_items.file_url} target="_blank" rel="noreferrer"
-                          className="p-1.5 rounded-lg flex-shrink-0" style={{ color: '#7060a0' }}
+                          className="p-1.5 rounded-lg flex-shrink-0" style={{ color: 'var(--text-faint)' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#aa78a6'; }}
                           onMouseLeave={e => { e.currentTarget.style.color = '#7060a0'; }}>
                           <ExternalLink size={14} />
                         </a>
                       )}
                       <button
+                        onClick={() => toggleContentPublicMutation.mutate({ assignId: c.id, is_public: !c.is_public })}
+                        title={c.is_public ? 'Make private' : 'Make public on cohort page'}
+                        disabled={toggleContentPublicMutation.isPending}
+                        className="p-1.5 rounded-lg transition-all flex-shrink-0"
+                        style={{ color: c.is_public ? '#40c980' : 'var(--text-muted)', background: c.is_public ? 'rgba(64,201,128,0.1)' : '' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = c.is_public ? 'rgba(64,201,128,0.15)' : 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = c.is_public ? '#40c980' : '#aa78a6'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = c.is_public ? 'rgba(64,201,128,0.1)' : ''; e.currentTarget.style.color = c.is_public ? '#40c980' : '#9080a8'; }}>
+                        {c.is_public ? <Globe size={14} /> : <Lock size={14} />}
+                      </button>
+                      <button
                         onClick={() => { if (confirm('Remove this content from cohort?')) removeContentMutation.mutate(c.id); }}
                         className="p-1.5 rounded-lg transition-colors flex-shrink-0"
-                        style={{ color: '#9080a8' }}
+                        style={{ color: 'var(--text-muted)' }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#e05065'; e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = '#9080a8'; e.currentTarget.style.background = ''; }}>
                         <Trash2 size={14} />
@@ -2046,11 +2200,11 @@ export default function CohortDetailPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: '#f0e8fc' }}>
+              <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
                 <Award size={18} style={{ color: '#c89650' }} />
                 Assessment Results
               </h2>
-              <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                 View participant responses for each assessment assigned to this cohort. Click an assessment to expand.
               </p>
             </div>
@@ -2067,7 +2221,7 @@ export default function CohortDetailPage() {
                 <div key={label} className="rounded-xl p-4 text-center"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.12)' }}>
                   <p className="text-2xl font-bold capitalize" style={{ color }}>{value ?? '—'}</p>
-                  <p className="text-xs mt-1" style={{ color: '#7060a0' }}>{label}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{label}</p>
                 </div>
               ))}
             </div>
@@ -2076,25 +2230,97 @@ export default function CohortDetailPage() {
           {loadingAsmts ? (
             <div className="glass-card p-10 text-center">
               <div className="w-6 h-6 rounded-full border-2 border-purple-400 border-t-transparent animate-spin mx-auto mb-3" />
-              <p className="text-sm" style={{ color: '#5a4870' }}>Loading assessments…</p>
+              <p className="text-sm" style={{ color: 'var(--text-ghost)' }}>Loading assessments…</p>
             </div>
           ) : !assignedAssessments?.length ? (
             <div className="glass-card p-16 text-center">
               <Brain size={44} className="mx-auto mb-4 opacity-20" style={{ color: '#aa78a6' }} />
-              <h3 className="font-semibold mb-1" style={{ color: '#9080a8' }}>No assessments assigned</h3>
-              <p className="text-sm" style={{ color: '#5a4870' }}>
+              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>No assessments assigned</h3>
+              <p className="text-sm" style={{ color: 'var(--text-ghost)' }}>
                 Go to the <strong style={{ color: '#aa78a6' }}>Assignments</strong> tab to assign assessments to this cohort first.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               {assignedAssessments.map(assignment => (
-                <AssessmentResultCard key={assignment.id} cohortId={id} assignment={assignment} />
+                <AssessmentResultCard key={assignment.id} cohortId={id} assignment={assignment} enrolledParticipants={enrollments || []} />
               ))}
             </div>
           )}
         </motion.div>
       )}
+
+      {/* Remove Assessment Confirm Dialog */}
+      <AnimatePresence>
+        {removeConfirm && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ background: 'rgba(10,6,20,0.72)', backdropFilter: 'blur(6px)' }}
+            onClick={() => !removeAssessmentMutation.isPending && setRemoveConfirm(null)}>
+            <motion.div className="glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl"
+              initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 16 }}
+              onClick={e => e.stopPropagation()}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: removeConfirm.step === 'force' ? 'rgba(224,80,101,0.15)' : 'rgba(200,150,80,0.12)' }}>
+                <Trash2 size={20} style={{ color: removeConfirm.step === 'force' ? '#e05065' : '#c89650' }} />
+              </div>
+              {removeConfirm.step === 'confirm' ? (
+                <>
+                  <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-heading)' }}>
+                    Remove Assessment
+                  </h3>
+                  <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+                    Remove <strong style={{ color: 'var(--text-body)' }}>{removeConfirm.title}</strong> from this cohort?
+                    Participants will no longer see it.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-base font-semibold mb-1" style={{ color: '#e05065' }}>
+                    Response Data Will Be Deleted
+                  </h3>
+                  <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
+                    {removeConfirm.message}
+                  </p>
+                  <p className="text-sm mb-5 font-medium" style={{ color: 'var(--text-body)' }}>
+                    This cannot be undone. All participant answers and scores will be permanently lost.
+                  </p>
+                </>
+              )}
+              <div className="flex gap-3 justify-end">
+                <button
+                  disabled={removeAssessmentMutation.isPending}
+                  onClick={() => setRemoveConfirm(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                  style={{ color: 'var(--text-muted)', border: '1px solid rgba(170,120,166,0.2)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = ''}>
+                  Cancel
+                </button>
+                <button
+                  disabled={removeAssessmentMutation.isPending}
+                  onClick={() => removeAssessmentMutation.mutate({
+                    assignId: removeConfirm.assignId,
+                    force: removeConfirm.step === 'force',
+                  })}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-opacity"
+                  style={{
+                    background: removeConfirm.step === 'force' ? 'rgba(224,80,101,0.15)' : 'rgba(200,150,80,0.12)',
+                    color: removeConfirm.step === 'force' ? '#e05065' : '#c89650',
+                    border: `1px solid ${removeConfirm.step === 'force' ? 'rgba(224,80,101,0.3)' : 'rgba(200,150,80,0.3)'}`,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                  {removeAssessmentMutation.isPending && (
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                  )}
+                  {removeConfirm.step === 'confirm' ? 'Remove' : 'Delete Everything'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Cohort Modal */}
       <AnimatePresence>

@@ -49,7 +49,7 @@ function InputField({ ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
       }}
       onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
       onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'}
@@ -64,7 +64,7 @@ function SelectField({ children, ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
       }}>
       {children}
     </select>
@@ -159,7 +159,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
             <Building2 size={17} style={{ color: iconColor }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">
               {isEdit ? 'Edit Organization' : 'New Organization'}
             </h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
@@ -168,7 +168,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
           </div>
           <button onClick={onClose}
             className="p-1.5 rounded-lg transition-colors ml-2"
-            style={{ color: '#5a4870' }}
+            style={{ color: 'var(--text-ghost)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
             <X size={17} />
@@ -209,7 +209,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
           {/* Divider */}
           <div className="flex items-center gap-3 pt-1">
             <div className="flex-1 h-px" style={{ background: 'rgba(170,120,166,0.1)' }} />
-            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#5a4870' }}>
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-ghost)' }}>
               Primary Contact
             </span>
             <div className="flex-1 h-px" style={{ background: 'rgba(170,120,166,0.1)' }} />
@@ -219,7 +219,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
             <div>
               <Label>Contact Name</Label>
               <div className="relative">
-                <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+                <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
                 <InputField
                   value={form.primary_contact_name}
                   onChange={e => set('primary_contact_name', e.target.value)}
@@ -230,7 +230,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
             <div>
               <Label>Phone</Label>
               <div className="relative">
-                <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+                <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
                 <InputField
                   value={form.primary_contact_phone}
                   onChange={e => set('primary_contact_phone', e.target.value)}
@@ -243,7 +243,7 @@ function OrgModal({ mode = 'create', org, onClose }) {
           <div>
             <Label>Contact Email</Label>
             <div className="relative">
-              <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+              <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
               <InputField
                 type="email"
                 value={form.primary_contact_email}
@@ -318,9 +318,9 @@ function DeleteOrgModal({ org, onClose }) {
           style={{ background: 'rgba(224,80,101,0.12)', border: '1px solid rgba(224,80,101,0.28)' }}>
           <Trash2 size={20} style={{ color: '#e05065' }} />
         </div>
-        <h3 className="font-bold text-white mb-1">Archive Organization</h3>
-        <p className="text-sm mb-5" style={{ color: '#7060a0' }}>
-          Archive <span style={{ color: '#f0e8fc' }}>{org.display_name}</span>? Cohorts and users linked to this org will remain intact.
+        <h3 className="font-bold text-[var(--text-heading)] mb-1">Archive Organization</h3>
+        <p className="text-sm mb-5" style={{ color: 'var(--text-faint)' }}>
+          Archive <span style={{ color: 'var(--text-heading)' }}>{org.display_name}</span>? Cohorts and users linked to this org will remain intact.
         </p>
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-ghost flex-1 text-sm">Cancel</button>
@@ -361,8 +361,8 @@ export default function OrganizationsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Organizations</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Organizations</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>
             {data?.meta?.total ?? 0} organizations on the platform
           </p>
         </div>
@@ -376,7 +376,7 @@ export default function OrganizationsPage() {
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-52">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search organizations…"
@@ -395,7 +395,7 @@ export default function OrganizationsPage() {
             <tr style={{ borderBottom: '1px solid rgba(170,120,166,0.12)' }}>
               {['Organization', 'Industry', 'Primary Contact', 'Status', 'Created', ''].map(h => (
                 <th key={h} className="text-left text-xs font-semibold uppercase tracking-wider px-5 py-3.5"
-                  style={{ color: '#5a4870' }}>
+                  style={{ color: 'var(--text-ghost)' }}>
                   {h}
                 </th>
               ))}
@@ -432,23 +432,23 @@ export default function OrganizationsPage() {
                           {org.display_name?.[0]?.toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">{org.display_name}</p>
-                          <p className="text-xs mt-0.5" style={{ color: '#5a4870' }}>{org.slug}</p>
+                          <p className="text-sm font-semibold text-[var(--text-heading)]">{org.display_name}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-ghost)' }}>{org.slug}</p>
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-5 py-4 text-sm" style={{ color: '#9080a8' }}>
-                      {org.industry || <span style={{ color: '#3a3050' }}>—</span>}
+                    <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-muted)' }}>
+                      {org.industry || <span style={{ color: 'var(--text-ultra)' }}>—</span>}
                     </td>
 
                     <td className="px-5 py-4">
                       {org.primary_contact_name
                         ? <>
-                            <p className="text-sm" style={{ color: '#c8b8e0' }}>{org.primary_contact_name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: '#5a4870' }}>{org.primary_contact_email}</p>
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{org.primary_contact_name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-ghost)' }}>{org.primary_contact_email}</p>
                           </>
-                        : <span className="text-sm" style={{ color: '#3a3050' }}>—</span>
+                        : <span className="text-sm" style={{ color: 'var(--text-ultra)' }}>—</span>
                       }
                     </td>
 
@@ -456,7 +456,7 @@ export default function OrganizationsPage() {
                       <StatusBadge status={org.status} />
                     </td>
 
-                    <td className="px-5 py-4 text-sm" style={{ color: '#5a4870' }}>
+                    <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-ghost)' }}>
                       {format(new Date(org.created_at), 'MMM d, yyyy')}
                     </td>
 
@@ -467,7 +467,7 @@ export default function OrganizationsPage() {
                           onClick={() => setModal({ type: 'edit', org })}
                           title="Edit"
                           className="p-2 rounded-lg transition-all"
-                          style={{ color: '#7060a0' }}
+                          style={{ color: 'var(--text-faint)' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = '#f0e8fc'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                           <Edit2 size={14} />
@@ -476,12 +476,12 @@ export default function OrganizationsPage() {
                           onClick={() => setModal({ type: 'delete', org })}
                           title="Archive"
                           className="p-2 rounded-lg transition-all"
-                          style={{ color: '#7060a0' }}
+                          style={{ color: 'var(--text-faint)' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; e.currentTarget.style.color = '#e05065'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                           <Trash2 size={14} />
                         </button>
-                        <ChevronRight size={14} style={{ color: '#3a3050' }} />
+                        <ChevronRight size={14} style={{ color: 'var(--text-ultra)' }} />
                       </div>
                     </td>
                   </motion.tr>
@@ -493,8 +493,8 @@ export default function OrganizationsPage() {
         {!isLoading && orgs.length === 0 && (
           <div className="text-center py-16">
             <Building2 size={40} className="mx-auto mb-3" style={{ color: '#2a2040' }} />
-            <p className="font-medium" style={{ color: '#5a4870' }}>No organizations found</p>
-            <p className="text-sm mt-1" style={{ color: '#3a3050' }}>
+            <p className="font-medium" style={{ color: 'var(--text-ghost)' }}>No organizations found</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-ultra)' }}>
               {search ? 'Try a different search term' : 'Create your first organization to get started'}
             </p>
           </div>

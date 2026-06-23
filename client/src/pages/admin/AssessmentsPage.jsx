@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Brain, Target, Users, Star, Sliders, X, Check, AlertCircle,
   Edit2, Trash2, Eye, EyeOff, Clock, BarChart2, FileText,
-  AlignLeft, Hash, List, Search, ChevronRight, Share2, Building2,
+  AlignLeft, Hash, List, Search, ChevronRight, Share2, Building2, Download,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
 import api from '../../lib/api';
+import { useThemeStore } from '../../store/themeStore';
 
 function ModalBackdrop({ onClose, children }) {
   return createPortal(
@@ -49,7 +52,7 @@ function FL({ children, required }) {
 }
 const iBase = {
   className: 'w-full px-3 py-2.5 rounded-xl text-sm outline-none',
-  style: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc', colorScheme: 'dark' },
+  style: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)', colorScheme: 'dark' },
   onFocus: e => (e.target.style.borderColor = 'rgba(170,120,166,0.5)'),
   onBlur: e => (e.target.style.borderColor = 'rgba(170,120,166,0.18)'),
 };
@@ -102,14 +105,14 @@ function QuestionEditor({ q, onChange, onRemove }) {
           <input type="number" min="0" max="100" value={q.points ?? 1}
             onChange={e => onChange({ ...q, points: parseInt(e.target.value) || 0 })}
             className="w-14 px-2 py-1.5 rounded-lg text-xs text-center outline-none"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }}
             title="Points" />
           <span className="text-xs" style={{ color: '#6a5880' }}>pts</span>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input type="checkbox" checked={q.required ?? true} onChange={e => onChange({ ...q, required: e.target.checked })} className="w-3.5 h-3.5 accent-purple-500" />
-            <span className="text-xs" style={{ color: '#7060a0' }}>Required</span>
+            <span className="text-xs" style={{ color: 'var(--text-faint)' }}>Required</span>
           </label>
-          <button onClick={onRemove} className="p-1.5 rounded-lg transition-colors" style={{ color: '#7060a0' }}
+          <button onClick={onRemove} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><X size={13} /></button>
         </div>
@@ -118,7 +121,7 @@ function QuestionEditor({ q, onChange, onRemove }) {
       <textarea value={q.text || ''} rows={2} onChange={e => onChange({ ...q, text: e.target.value })}
         placeholder="Question text…"
         className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.14)', color: '#f0e8fc' }}
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.14)', color: 'var(--text-heading)' }}
         onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.4)'}
         onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.14)'} />
 
@@ -132,7 +135,7 @@ function QuestionEditor({ q, onChange, onRemove }) {
               </div>
               <input value={opt} onChange={e => updateOption(idx, e.target.value)} placeholder={`Option ${idx + 1}`}
                 className="flex-1 px-3 py-1.5 rounded-lg text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.12)', color: '#f0e8fc' }}
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.12)', color: 'var(--text-heading)' }}
                 onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.35)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.12)'} />
               {options.length > 2 && (
@@ -143,7 +146,7 @@ function QuestionEditor({ q, onChange, onRemove }) {
             </div>
           ))}
           {options.length < 6 && (
-            <button onClick={addOption} className="text-xs flex items-center gap-1.5 mt-1 transition-colors" style={{ color: '#7060a0' }}
+            <button onClick={addOption} className="text-xs flex items-center gap-1.5 mt-1 transition-colors" style={{ color: 'var(--text-faint)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
               onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
               <Plus size={12} /> Add option
@@ -170,18 +173,18 @@ function QuestionEditor({ q, onChange, onRemove }) {
         <div className="flex items-center gap-3 flex-wrap">
           {[['Min', 'scale_min', 1], ['Max', 'scale_max', 5]].map(([lbl, key, def]) => (
             <div key={key} className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: '#7060a0' }}>{lbl}</span>
+              <span className="text-xs" style={{ color: 'var(--text-faint)' }}>{lbl}</span>
               <input type="number" value={q[key] ?? def} onChange={e => onChange({ ...q, [key]: parseInt(e.target.value) })}
                 className="w-14 px-2 py-1.5 rounded-lg text-xs text-center outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }} />
             </div>
           ))}
           <input value={q.scale_label_min || ''} onChange={e => onChange({ ...q, scale_label_min: e.target.value })}
             placeholder="Low label" className="px-3 py-1.5 rounded-lg text-xs outline-none w-24"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }} />
           <input value={q.scale_label_max || ''} onChange={e => onChange({ ...q, scale_label_max: e.target.value })}
             placeholder="High label" className="px-3 py-1.5 rounded-lg text-xs outline-none w-24"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: '#f0e8fc' }} />
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.18)', color: 'var(--text-heading)' }} />
         </div>
       )}
 
@@ -212,7 +215,7 @@ function SectionEditor({ section, onChange, onRemove, idx }) {
           style={{ background: 'rgba(170,120,166,0.2)', color: '#c8a0c4' }}>{idx + 1}</div>
         <input value={section.title} onChange={e => onChange({ ...section, title: e.target.value })}
           placeholder={`Section ${idx + 1} title`}
-          className="flex-1 bg-transparent outline-none text-sm font-semibold" style={{ color: '#f0e8fc' }} />
+          className="flex-1 bg-transparent outline-none text-sm font-semibold" style={{ color: 'var(--text-heading)' }} />
         <span className="text-xs" style={{ color: '#6a5880' }}>{section.questions.length}Q</span>
         <button onClick={() => setCollapsed(c => !c)} className="p-1 transition-colors" style={{ color: '#6a5880' }}>
           {collapsed ? <Plus size={14} /> : <X size={14} />}
@@ -351,14 +354,14 @@ function AssessmentModal({ assessment, onClose }) {
             <TypeIcon size={15} style={{ color: typeInfo?.color }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white">{isEdit ? 'Edit Assessment' : 'Create Assessment'}</h2>
+            <h2 className="font-bold text-[var(--text-heading)]">{isEdit ? 'Edit Assessment' : 'Create Assessment'}</h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
               {isEdit && !fullAsmt
                 ? 'Loading…'
                 : `${form.sections.length} section${form.sections.length !== 1 ? 's' : ''} · ${totalQs} question${totalQs !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-ghost)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
             onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}><X size={17} /></button>
         </div>
@@ -394,7 +397,7 @@ function AssessmentModal({ assessment, onClose }) {
                 {[['allow_save_resume', 'Save & Resume'], ['shuffle_questions', 'Shuffle Qs'], ['show_progress_bar', 'Progress Bar']].map(([k, l]) => (
                   <label key={k} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={form[k]} onChange={e => set(k, e.target.checked)} className="w-3.5 h-3.5 accent-purple-500" />
-                    <span className="text-xs" style={{ color: '#7060a0' }}>{l}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-faint)' }}>{l}</span>
                   </label>
                 ))}
               </div>
@@ -444,123 +447,345 @@ function AssessmentModal({ assessment, onClose }) {
   );
 }
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+function hasAnswers(resp) {
+  const a = resp.answers;
+  return a && typeof a === 'object' && Object.keys(a).length > 0;
+}
+
+function respStatusLabel(resp) {
+  if (resp.status === 'submitted' || resp.status === 'scored') return resp.status === 'scored' ? 'Scored' : 'Submitted';
+  if (resp.status === 'in_progress' && !hasAnswers(resp)) return 'Not Started';
+  return 'In Progress';
+}
+
+function respStatusStyle(resp) {
+  const label = respStatusLabel(resp);
+  if (label === 'Submitted' || label === 'Scored')
+    return { bg: 'rgba(64,201,128,0.12)', color: '#40c980', border: 'rgba(64,201,128,0.25)' };
+  if (label === 'In Progress')
+    return { bg: 'rgba(200,150,80,0.12)', color: '#c89650', border: 'rgba(200,150,80,0.25)' };
+  // Not Started
+  return { bg: 'rgba(90,72,112,0.15)', color: '#8a78a8', border: 'rgba(90,72,112,0.25)' };
+}
+
+function exportResponsesXLSXFromModal(assessmentTitle, sections, responses) {
+  const allQuestions = [];
+  (sections || []).forEach((sec, si) => {
+    (sec.questions || []).forEach((q, qi) => {
+      allQuestions.push({
+        key: q.id != null ? q.id : qi,
+        label: `Q${allQuestions.length + 1}`,
+        text: q.text || `Question ${allQuestions.length + 1}`,
+        type: q.type,
+        options: q.options || [],
+        section: sec.title || `Section ${si + 1}`,
+      });
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Summary
+  const summaryRows = [['Name', 'Email', 'Designation', 'Department', 'Status', 'Score', 'Attempt #', 'Started At', 'Submitted At', 'Cohort']];
+  responses.forEach(r => {
+    const u = r.enrollment?.user || {};
+    const label = respStatusLabel(r);
+    summaryRows.push([
+      u.name || u.display_name || '',
+      u.email || '',
+      u.designation || '',
+      u.department || '',
+      label,
+      r.total_score != null ? r.total_score : '',
+      r.attempt_number || '',
+      r.started_at ? format(new Date(r.started_at), 'dd/MM/yyyy HH:mm') : '',
+      r.submitted_at ? format(new Date(r.submitted_at), 'dd/MM/yyyy HH:mm') : '',
+      r._cohortName || '',
+    ]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1['!cols'] = [22, 28, 20, 18, 14, 8, 10, 18, 18, 22].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+  // Sheet 2: Question Responses (only submitted/scored)
+  const submitted = responses.filter(r => r.status === 'submitted' || r.status === 'scored');
+  if (allQuestions.length && submitted.length) {
+    const qRows = [
+      ['Name', 'Email', ...allQuestions.map(q => q.label)],
+      ['', '',       ...allQuestions.map(q => `[${q.section}] ${q.text}`)],
+    ];
+    submitted.forEach(r => {
+      const u = r.enrollment?.user || {};
+      const answers = r.answers || {};
+      const row = [u.name || u.display_name || '', u.email || ''];
+      allQuestions.forEach(q => {
+        const ans = answers[q.key];
+        if (ans == null || ans === '') { row.push(''); return; }
+        if (q.type === 'mcq') {
+          const idx = Number(ans);
+          const opt = q.options[idx];
+          row.push(opt != null ? `${String.fromCharCode(65 + idx)}. ${opt}` : String(ans));
+        } else {
+          row.push(String(ans));
+        }
+      });
+      qRows.push(row);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(qRows);
+    ws2['!cols'] = [22, 28, ...allQuestions.map(() => ({ wch: 24 }))];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Question Responses');
+  }
+
+  const safe = assessmentTitle.replace(/[^a-z0-9]/gi, '_');
+  XLSX.writeFile(wb, `${safe}_responses.xlsx`);
+}
+
+// ── Answer Detail Panel (shown inline below a response row) ──────────────────
+function AnswerDetailPanel({ resp, sections }) {
+  const answers = resp.answers || {};
+  if (!sections || sections.length === 0)
+    return <p className="text-xs italic py-3 text-center" style={{ color: 'var(--text-ghost)' }}>No question structure available for this assessment.</p>;
+
+  return (
+    <div className="mt-3 space-y-4 pt-3" style={{ borderTop: '1px solid rgba(170,120,166,0.1)' }}>
+      {sections.map((sec, si) => (
+        <div key={si}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#aa78a6' }}>
+            {sec.title || `Section ${si + 1}`}
+          </p>
+          <div className="space-y-2">
+            {(sec.questions || []).map((q, qi) => {
+              const qKey = q.id != null ? q.id : qi;
+              const answer = answers[qKey];
+              const unanswered = answer == null || answer === '';
+              return (
+                <div key={qi} className="rounded-xl p-3"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${unanswered ? 'rgba(170,120,166,0.07)' : 'rgba(170,120,166,0.14)'}` }}>
+                  <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <span className="font-bold mr-1.5" style={{ color: 'var(--text-ghost)' }}>{si + 1}.{qi + 1}</span>
+                    {q.text}
+                  </p>
+                  {unanswered ? (
+                    <p className="text-xs italic" style={{ color: 'var(--text-ghost)' }}>No answer provided</p>
+                  ) : q.type === 'mcq' ? (
+                    <div className="text-xs px-3 py-1.5 rounded-lg inline-block"
+                      style={{ background: 'rgba(100,150,220,0.12)', color: '#8ab8f0', border: '1px solid rgba(100,150,220,0.2)' }}>
+                      {String.fromCharCode(65 + Number(answer))}. {(q.options || [])[Number(answer)] ?? answer}
+                    </div>
+                  ) : (
+                    <div className="text-xs px-3 py-1.5 rounded-lg whitespace-pre-wrap"
+                      style={{ background: 'rgba(170,120,166,0.08)', color: 'var(--text-secondary)' }}>
+                      {String(answer)}
+                    </div>
+                  )}
+                  {q.type === 'mcq' && q.correct_option != null && (
+                    <p className="text-xs mt-1.5" style={{ color: Number(answer) === q.correct_option ? '#40c980' : '#e05065' }}>
+                      {Number(answer) === q.correct_option ? '✓ Correct' : `✗ Correct answer: ${String.fromCharCode(65 + q.correct_option)}. ${(q.options || [])[q.correct_option]}`}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ResponsesModal({ assessment, onClose }) {
   const [selectedCohort, setSelectedCohort] = useState(null);
+  const [expandedResp, setExpandedResp] = useState(null); // response id whose answers are shown
 
+  // Fetch responses (now includes answers + started_at)
   const { data: respData, isLoading } = useQuery({
     queryKey: ['assessment-responses', assessment.id],
     queryFn: () => api.get(`/assessments/${assessment.id}/responses`).then(r => r.data),
     staleTime: 30_000,
   });
 
+  // Fetch full assessment detail to get sections (library list only returns summary fields)
+  const { data: fullDetail } = useQuery({
+    queryKey: ['assessment-detail', assessment.id],
+    queryFn: () => api.get(`/assessments/${assessment.id}`).then(r => r.data.data),
+    staleTime: 60_000,
+  });
+  const sections = fullDetail?.sections || assessment.sections || [];
+
   const assignments = respData?.assignments || [];
   const allResponses = respData?.data || [];
+
   const byAssignment = assignments.reduce((acc, asg) => {
-    acc[asg.id] = { cohort: asg.cohorts, responses: allResponses.filter(r => r.assignment_id === asg.id) };
+    acc[asg.id] = {
+      cohort: asg.cohorts,
+      responses: allResponses
+        .filter(r => r.assignment_id === asg.id)
+        .map(r => ({ ...r, _cohortName: asg.cohorts?.name || '' })),
+    };
     return acc;
   }, {});
 
-  const STATUS_COLORS = { in_progress: '#c89650', submitted: '#6496dc', scored: '#40c980' };
+  const handleExport = (cohortId) => {
+    const info = byAssignment[cohortId];
+    if (!info) return;
+    exportResponsesXLSXFromModal(assessment.title, sections, info.responses);
+  };
 
   return (
     <ModalBackdrop onClose={onClose}>
       <motion.div initial={{ scale: 0.96, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 16 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card w-full max-w-2xl"
-        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(170,120,166,0.2)' }}
+        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(170,120,166,0.2)', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}>
 
-        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
           <div className="w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: 'rgba(100,200,120,0.12)', border: '1px solid rgba(100,200,120,0.2)' }}>
             <BarChart2 size={15} style={{ color: '#64c878' }} />
           </div>
-          <div className="flex-1">
-            <h2 className="font-bold text-white">Participant Responses</h2>
-            <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>{assessment.title}</p>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-[var(--text-heading)]">Participant Responses</h2>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-ghost)' }}>{assessment.title}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
-            onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}><X size={17} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-ghost)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-heading)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-ghost)'}><X size={17} /></button>
         </div>
 
-        <div className="px-6 py-5">
+        {/* Body */}
+        <div className="px-6 py-5 overflow-y-auto flex-1">
           {isLoading ? (
-            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-14 rounded-xl animate-pulse bg-white/5" />)}</div>
+            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: 'rgba(170,120,166,0.07)' }} />)}</div>
           ) : assignments.length === 0 ? (
             <div className="py-12 text-center">
               <BarChart2 size={36} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-              <p style={{ color: '#7060a0' }}>This assessment has not been assigned to any cohort yet.</p>
+              <p style={{ color: 'var(--text-faint)' }}>This assessment has not been assigned to any cohort yet.</p>
             </div>
           ) : !selectedCohort ? (
+            // ── Cohort list ──
             <div className="space-y-3">
-              <p className="text-xs mb-3" style={{ color: '#6a5880' }}>Select a cohort to see individual responses:</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-ghost)' }}>Select a cohort to view responses:</p>
               {assignments.map(asg => {
                 const info = byAssignment[asg.id];
                 const total = info?.responses?.length || 0;
-                const submitted = info?.responses?.filter(r => r.status !== 'in_progress').length || 0;
+                const submitted = info?.responses?.filter(r => r.status === 'submitted' || r.status === 'scored').length || 0;
+                const notStarted = info?.responses?.filter(r => r.status === 'in_progress' && !hasAnswers(r)).length || 0;
+                const inProg = total - submitted - notStarted;
                 return (
-                  <button key={asg.id} onClick={() => setSelectedCohort(asg.id)}
+                  <button key={asg.id} onClick={() => { setSelectedCohort(asg.id); setExpandedResp(null); }}
                     className="w-full flex items-center gap-4 p-4 rounded-xl transition-all text-left"
                     style={{ background: 'rgba(170,120,166,0.05)', border: '1px solid rgba(170,120,166,0.12)' }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(170,120,166,0.3)'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(170,120,166,0.12)'}>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm" style={{ color: '#f0e8fc' }}>{info?.cohort?.name || 'Cohort'}</p>
-                      <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>{info?.cohort?.cohort_code}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-heading)' }}>{info?.cohort?.name || 'Cohort'}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-ghost)' }}>{info?.cohort?.cohort_code}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-xs" style={{ color: '#7060a0' }}>
-                      <span><strong style={{ color: '#c8a0c4' }}>{total}</strong> responses</span>
-                      <span><strong style={{ color: '#40c980' }}>{submitted}</strong> submitted</span>
-                      <span><strong style={{ color: '#c89650' }}>{total - submitted}</strong> in progress</span>
+                    <div className="flex items-center gap-3 text-xs flex-shrink-0">
+                      <span className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(64,201,128,0.1)', color: '#40c980' }}>{submitted} submitted</span>
+                      {inProg > 0 && <span className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(200,150,80,0.1)', color: '#c89650' }}>{inProg} in progress</span>}
+                      {notStarted > 0 && <span className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(90,72,112,0.12)', color: '#8a78a8' }}>{notStarted} not started</span>}
                     </div>
-                    <ChevronRight size={16} style={{ color: '#6a5880' }} />
+                    <ChevronRight size={16} style={{ color: 'var(--text-ghost)', flexShrink: 0 }} />
                   </button>
                 );
               })}
             </div>
           ) : (() => {
+            // ── Response list for selected cohort ──
             const info = byAssignment[selectedCohort];
+            const cohortResponses = info?.responses || [];
             return (
               <div className="space-y-3">
-                <button onClick={() => setSelectedCohort(null)}
-                  className="flex items-center gap-2 text-sm mb-1 transition-colors" style={{ color: '#7060a0' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
-                  ← Back to cohorts
-                </button>
-                {info?.responses?.length === 0 ? (
-                  <div className="py-8 text-center" style={{ color: '#6a5880' }}>No responses yet for this cohort.</div>
-                ) : info.responses.map(resp => {
-                  const user = resp.enrollments?.users;
+                {/* Toolbar */}
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => { setSelectedCohort(null); setExpandedResp(null); }}
+                    className="flex items-center gap-1.5 text-sm transition-colors" style={{ color: 'var(--text-faint)' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-heading)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+                    ← {info?.cohort?.name || 'Back'}
+                  </button>
+                  {cohortResponses.length > 0 && (
+                    <button onClick={() => handleExport(selectedCohort)}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                      style={{ background: 'rgba(100,150,220,0.1)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.22)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(100,150,220,0.2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(100,150,220,0.1)'}>
+                      <Download size={12} /> Export Excel
+                    </button>
+                  )}
+                </div>
+
+                {cohortResponses.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Brain size={32} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
+                    <p className="text-sm" style={{ color: 'var(--text-ghost)' }}>No responses yet for this cohort.</p>
+                  </div>
+                ) : cohortResponses.map(resp => {
+                  const user = resp.enrollment?.user || {};
+                  const isExpanded = expandedResp === resp.id;
+                  const canView = (resp.status === 'submitted' || resp.status === 'scored') && hasAnswers(resp);
+                  const st = respStatusStyle(resp);
+                  const label = respStatusLabel(resp);
+
                   return (
-                    <div key={resp.id} className="p-4 rounded-xl"
-                      style={{ background: 'rgba(170,120,166,0.04)', border: '1px solid rgba(170,120,166,0.1)' }}>
-                      <div className="flex items-center gap-3">
+                    <div key={resp.id} className="rounded-xl overflow-hidden"
+                      style={{ background: 'rgba(170,120,166,0.04)', border: `1px solid ${isExpanded ? 'rgba(170,120,166,0.25)' : 'rgba(170,120,166,0.1)'}` }}>
+                      <div className="flex items-center gap-3 p-4">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{ background: 'rgba(170,120,166,0.15)', color: '#c8a0c4' }}>
-                          {(user?.display_name || user?.name || '?')[0]?.toUpperCase()}
+                          style={{ background: 'linear-gradient(135deg,#aa78a6,#6040a0)', color: '#fff' }}>
+                          {(user.name || user.display_name || '?')[0]?.toUpperCase()}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm" style={{ color: '#f0e8fc' }}>{user?.display_name || user?.name || 'Participant'}</p>
-                          <p className="text-xs" style={{ color: '#6a5880' }}>{user?.designation || user?.email || ''}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-heading)' }}>
+                            {user.name || user.display_name || 'Participant'}
+                          </p>
+                          <p className="text-xs truncate" style={{ color: 'var(--text-ghost)' }}>
+                            {user.email}{user.designation ? ` · ${user.designation}` : ''}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                            style={{ background: `${STATUS_COLORS[resp.status]}18`, color: STATUS_COLORS[resp.status] }}>
-                            {resp.status?.replace('_', ' ')}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {resp.submitted_at && (
+                            <p className="text-xs hidden sm:block" style={{ color: 'var(--text-ghost)' }}>
+                              {format(new Date(resp.submitted_at), 'dd MMM yyyy')}
+                            </p>
+                          )}
+                          <span className="text-xs px-2.5 py-1 rounded-full font-medium"
+                            style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
+                            {label}
                           </span>
                           {resp.total_score != null && (
-                            <p className="text-xs mt-1" style={{ color: '#c8a0c4' }}>Score: <strong>{resp.total_score}</strong></p>
+                            <span className="text-xs font-bold px-2 py-1 rounded-lg"
+                              style={{ background: 'rgba(100,200,120,0.1)', color: '#64c878' }}>
+                              {resp.total_score}pts
+                            </span>
+                          )}
+                          {canView && (
+                            <button onClick={() => setExpandedResp(isExpanded ? null : resp.id)}
+                              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+                              style={{ color: isExpanded ? '#f0e8fc' : '#aa78a6', background: isExpanded ? 'rgba(170,120,166,0.2)' : 'rgba(170,120,166,0.07)', border: '1px solid rgba(170,120,166,0.2)' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.18)'; e.currentTarget.style.color = '#f0e8fc'; }}
+                              onMouseLeave={e => { if (!isExpanded) { e.currentTarget.style.background = 'rgba(170,120,166,0.07)'; e.currentTarget.style.color = '#aa78a6'; } }}>
+                              <Eye size={11} /> {isExpanded ? 'Hide' : 'Answers'}
+                            </button>
                           )}
                         </div>
                       </div>
-                      {resp.submitted_at && (
-                        <p className="text-xs mt-2" style={{ color: '#5a4870' }}>
-                          Submitted {new Date(resp.submitted_at).toLocaleDateString()}
-                          {resp.time_taken_seconds ? ` · ${Math.round(resp.time_taken_seconds / 60)}m taken` : ''}
-                        </p>
-                      )}
+
+                      {/* Expanded answer panel */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                            style={{ overflow: 'hidden', borderTop: '1px solid rgba(170,120,166,0.1)' }}>
+                            <div className="px-4 pb-4">
+                              <AnswerDetailPanel resp={resp} sections={sections} />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   );
                 })}
@@ -569,7 +794,7 @@ function ResponsesModal({ assessment, onClose }) {
           })()}
         </div>
 
-        <div className="px-6 pb-5">
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(170,120,166,0.1)' }}>
           <button onClick={onClose} className="btn-ghost w-full text-sm">Close</button>
         </div>
       </motion.div>
@@ -596,12 +821,12 @@ function DeleteAsmtModal({ item, onClose }) {
             <Trash2 size={16} style={{ color: '#e05065' }} />
           </div>
           <div>
-            <h3 className="font-bold" style={{ color: '#f0e8fc' }}>Delete Assessment</h3>
-            <p className="text-xs" style={{ color: '#7060a0' }}>This will archive it permanently</p>
+            <h3 className="font-bold" style={{ color: 'var(--text-heading)' }}>Delete Assessment</h3>
+            <p className="text-xs" style={{ color: 'var(--text-faint)' }}>This will archive it permanently</p>
           </div>
         </div>
-        <p className="text-sm" style={{ color: '#9080a8' }}>
-          "<strong style={{ color: '#f0e8fc' }}>{item.title}</strong>" and all response data will be archived.
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          "<strong style={{ color: 'var(--text-heading)' }}>{item.title}</strong>" and all response data will be archived.
         </p>
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-ghost flex-1 text-sm">Cancel</button>
@@ -671,8 +896,8 @@ function AssignToCohortModal({ assessment, onClose }) {
         style={{ background: 'rgba(18,10,30,0.97)', border: '1px solid rgba(170,120,166,0.25)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-white text-lg">Assign to Cohort</h2>
-            <p className="text-xs mt-0.5 line-clamp-1" style={{ color: '#7060a0' }}>{assessment.title}</p>
+            <h2 className="font-bold text-[var(--text-heading)] text-lg">Assign to Cohort</h2>
+            <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--text-faint)' }}>{assessment.title}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: '#6a5880' }}
             onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
@@ -684,7 +909,7 @@ function AssignToCohortModal({ assessment, onClose }) {
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Cohort *</label>
             <select value={cohortId} onChange={e => setCohortId(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}>
               <option value="">Select active cohort…</option>
               {activeCohorts.map(c => (
                 <option key={c.id} value={c.id}>{c.name} ({c.cohort_code})</option>
@@ -697,13 +922,13 @@ function AssignToCohortModal({ assessment, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Access Opens</label>
               <input type="datetime-local" value={accessOpen} onChange={e => setAccessOpen(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Access Closes</label>
               <input type="datetime-local" value={accessClose} onChange={e => setAccessClose(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
           </div>
 
@@ -768,8 +993,8 @@ function AssessmentCard({ item, onEdit, onDelete, onToggle, onViewResponses, onA
           <Icon size={16} style={{ color: t.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm" style={{ color: '#f0e8fc' }}>{item.title}</h3>
-          {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#7060a0' }}>{item.description}</p>}
+          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-heading)' }}>{item.title}</h3>
+          {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-faint)' }}>{item.description}</p>}
         </div>
       </div>
 
@@ -801,12 +1026,12 @@ function AssessmentCard({ item, onEdit, onDelete, onToggle, onViewResponses, onA
         <div className="flex-1" />
         <button onClick={() => onEdit(item)}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-colors"
-          style={{ color: '#7060a0' }}
+          style={{ color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
           onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><Edit2 size={14} /></button>
         <button onClick={() => onDelete(item)}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-colors"
-          style={{ color: '#7060a0' }}
+          style={{ color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
           onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><Trash2 size={14} /></button>
       </div>
@@ -845,8 +1070,8 @@ export default function AssessmentsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6 page-enter">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Assessment Library</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Assessment Library</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>
             {total} assessment{total !== 1 ? 's' : ''} · Re-usable, assignable to cohorts
           </p>
         </div>
@@ -875,10 +1100,10 @@ export default function AssessmentsPage() {
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="flex flex-col gap-3">
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl max-w-xs"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)' }}>
-          <Search size={14} style={{ color: '#7060a0' }} />
+          <Search size={14} style={{ color: 'var(--text-faint)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assessments…"
-            className="bg-transparent outline-none text-sm flex-1" style={{ color: '#f0e8fc' }} />
-          {search && <button onClick={() => setSearch('')}><X size={12} style={{ color: '#7060a0' }} /></button>}
+            className="bg-transparent outline-none text-sm flex-1" style={{ color: 'var(--text-heading)' }} />
+          {search && <button onClick={() => setSearch('')}><X size={12} style={{ color: 'var(--text-faint)' }} /></button>}
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -917,7 +1142,7 @@ export default function AssessmentsPage() {
       ) : items.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-16 text-center">
           <Brain size={42} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-          <p className="font-semibold" style={{ color: '#f0e8fc' }}>No assessments found</p>
+          <p className="font-semibold" style={{ color: 'var(--text-heading)' }}>No assessments found</p>
           <p className="text-sm mt-1" style={{ color: '#6a5880' }}>
             {search || typeFilter || statusFilter ? 'Try adjusting filters' : 'Create your first re-usable assessment'}
           </p>

@@ -55,7 +55,7 @@ function InputEl({ ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
       }}
       onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
       onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.18)'}
@@ -70,7 +70,7 @@ function SelectEl({ children, ...props }) {
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(170,120,166,0.18)',
-        color: '#f0e8fc',
+        color: 'var(--text-heading)',
       }}>
       {children}
     </select>
@@ -81,7 +81,7 @@ function Divider({ label }) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 h-px" style={{ background: 'rgba(170,120,166,0.1)' }} />
-      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a3860' }}>{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-ultra)' }}>{label}</span>
       <div className="flex-1 h-px" style={{ background: 'rgba(170,120,166,0.1)' }} />
     </div>
   );
@@ -130,15 +130,15 @@ function CreatedSuccess({ user, tempPassword, onClose, onAnother }) {
       </motion.div>
 
       <div>
-        <h3 className="text-lg font-bold text-white">Account Created!</h3>
-        <p className="text-sm mt-1" style={{ color: '#7060a0' }}>
-          <span style={{ color: '#f0e8fc' }}>{user?.name}</span> is ready to log in.
+        <h3 className="text-lg font-bold text-[var(--text-heading)]">Account Created!</h3>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>
+          <span style={{ color: 'var(--text-heading)' }}>{user?.name}</span> is ready to log in.
         </p>
       </div>
 
       <div className="rounded-2xl p-4 text-left"
         style={{ background: 'rgba(170,120,166,0.06)', border: '1px solid rgba(170,120,166,0.18)' }}>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: '#7060a0' }}>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-faint)' }}>
           Temporary Password — share securely
         </p>
         <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ function CreatedSuccess({ user, tempPassword, onClose, onAnother }) {
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
-        <p className="text-xs mt-2" style={{ color: '#4a3860' }}>
+        <p className="text-xs mt-2" style={{ color: 'var(--text-ultra)' }}>
           The user will be prompted to set a new password on first login.
         </p>
       </div>
@@ -306,7 +306,7 @@ function UserModal({ mode = 'create', user, onClose }) {
             <UserPlus size={17} style={{ color: '#aa78a6' }} />
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-white leading-tight">
+            <h2 className="font-bold text-[var(--text-heading)] leading-tight">
               {isEdit ? 'Edit User' : 'New User Account'}
             </h2>
             <p className="text-xs mt-0.5" style={{ color: '#6a5880' }}>
@@ -316,7 +316,7 @@ function UserModal({ mode = 'create', user, onClose }) {
           {!created && (
             <button onClick={onClose}
               className="p-1.5 rounded-lg transition-colors"
-              style={{ color: '#5a4870' }}
+              style={{ color: 'var(--text-ghost)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
               onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
               <X size={17} />
@@ -487,8 +487,8 @@ export default function UsersPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Users</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>{data?.meta?.total ?? 0} total users</p>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Users</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>{data?.meta?.total ?? 0} total users</p>
         </div>
         <button onClick={() => setModal({ type: 'create' })} className="btn-primary flex items-center gap-2 text-sm">
           <UserPlus size={15} /> New User
@@ -497,7 +497,7 @@ export default function UsersPage() {
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-52">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#5a4870' }} />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-ghost)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search users…" className="input-field pl-9 text-sm w-full" />
         </div>
@@ -513,7 +513,7 @@ export default function UsersPage() {
             <tr style={{ borderBottom: '1px solid rgba(170,120,166,0.12)' }}>
               {['User', 'Role', 'Status', 'Department', 'Last Login', ''].map(h => (
                 <th key={h} className="text-left text-xs font-semibold uppercase tracking-wider px-5 py-3.5"
-                  style={{ color: '#5a4870' }}>
+                  style={{ color: 'var(--text-ghost)' }}>
                   {h}
                 </th>
               ))}
@@ -548,8 +548,8 @@ export default function UsersPage() {
                             {user.name?.[0]?.toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-white">{user.name}</p>
-                            <p className="text-xs mt-0.5" style={{ color: '#5a4870' }}>{user.email}</p>
+                            <p className="text-sm font-semibold text-[var(--text-heading)]">{user.name}</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-ghost)' }}>{user.email}</p>
                           </div>
                         </div>
                       </td>
@@ -562,16 +562,16 @@ export default function UsersPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span className="text-xs capitalize" style={{ color: '#9080a8' }}>
+                        <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>
                           {user.status?.replace(/_/g, ' ')}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-sm" style={{ color: '#5a4870' }}>
-                        {user.department || <span style={{ color: '#3a3050' }}>—</span>}
+                      <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-ghost)' }}>
+                        {user.department || <span style={{ color: 'var(--text-ultra)' }}>—</span>}
                       </td>
 
-                      <td className="px-5 py-4 text-sm" style={{ color: '#5a4870' }}>
+                      <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-ghost)' }}>
                         {user.last_login_at ? format(new Date(user.last_login_at), 'MMM d, yyyy') : 'Never'}
                       </td>
 
@@ -581,7 +581,7 @@ export default function UsersPage() {
                             onClick={() => setModal({ type: 'edit', user })}
                             title="Edit user"
                             className="p-2 rounded-lg transition-all"
-                            style={{ color: '#7060a0' }}
+                            style={{ color: 'var(--text-faint)' }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(170,120,166,0.12)'; e.currentTarget.style.color = '#f0e8fc'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                             <Edit2 size={14} />
@@ -591,7 +591,7 @@ export default function UsersPage() {
                               onClick={() => setModal({ type: 'reset-pwd', user })}
                               title="Reset password"
                               className="p-2 rounded-lg transition-all"
-                              style={{ color: '#7060a0' }}
+                              style={{ color: 'var(--text-faint)' }}
                               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(224,80,101,0.1)'; e.currentTarget.style.color = '#e05065'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#7060a0'; }}>
                               <KeyRound size={14} />
@@ -609,7 +609,7 @@ export default function UsersPage() {
         {!isLoading && !data?.data?.length && (
           <div className="text-center py-16">
             <Users size={40} className="mx-auto mb-3" style={{ color: '#2a2040' }} />
-            <p className="font-medium" style={{ color: '#5a4870' }}>No users found</p>
+            <p className="font-medium" style={{ color: 'var(--text-ghost)' }}>No users found</p>
           </div>
         )}
       </div>

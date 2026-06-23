@@ -25,7 +25,7 @@ const INTERVENTION_COLORS = {
   reflection:        { bg: 'rgba(170,120,166,0.1)', color: '#aa78a6', border: 'rgba(170,120,166,0.2)' },
   group_activity:    { bg: 'rgba(100,200,180,0.1)', color: '#64c8b4', border: 'rgba(100,200,180,0.2)' },
   assessment_window: { bg: 'rgba(200,150,80,0.1)',  color: '#c89650', border: 'rgba(200,150,80,0.2)'  },
-  custom:            { bg: 'rgba(170,120,166,0.06)', color: '#9080a8', border: 'rgba(170,120,166,0.15)'},
+  custom:            { bg: 'rgba(170,120,166,0.06)', color: 'var(--text-muted)', border: 'rgba(170,120,166,0.15)'},
 };
 const STATUS_STYLES = {
   active: { color: '#64c878' }, draft: { color: '#aa78a6' }, completed: { color: '#6496dc' },
@@ -74,25 +74,25 @@ function OrgEnrollModal({ allParticipants, enrolledIds, onEnroll, onClose, loadi
           style={{ background: '#140e24', border: '1px solid rgba(170,120,166,0.25)' }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold" style={{ color: '#f0e8fc' }}>Enroll Participants</h2>
-            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>Enroll Participants</h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-faint)' }}
               onMouseEnter={e => e.currentTarget.style.color = '#f0e8fc'}
               onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
               <X size={16} />
             </button>
           </div>
           <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or email…"
               className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}
               onFocus={e => e.target.style.borderColor = 'rgba(170,120,166,0.5)'}
               onBlur={e => e.target.style.borderColor = 'rgba(170,120,166,0.2)'} />
           </div>
           <div className="overflow-y-auto space-y-1 mb-3" style={{ maxHeight: '300px' }}>
             {filtered.length === 0 ? (
-              <p className="text-center py-8 text-sm" style={{ color: '#5a4870' }}>
+              <p className="text-center py-8 text-sm" style={{ color: 'var(--text-ghost)' }}>
                 {allParticipants.length === 0 ? 'Loading participants…' : 'No participants available'}
               </p>
             ) : filtered.map(p => {
@@ -108,8 +108,8 @@ function OrgEnrollModal({ allParticipants, enrolledIds, onEnroll, onClose, loadi
                     {isSel ? <Check size={13} /> : p.name?.[0] || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{p.name}</p>
-                    <p className="text-xs truncate" style={{ color: '#7060a0' }}>{p.email}{p.designation ? ` · ${p.designation}` : ''}</p>
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>{p.name}</p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-faint)' }}>{p.email}{p.designation ? ` · ${p.designation}` : ''}</p>
                   </div>
                 </div>
               );
@@ -122,9 +122,9 @@ function OrgEnrollModal({ allParticipants, enrolledIds, onEnroll, onClose, loadi
             </div>
           )}
           <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(170,120,166,0.12)' }}>
-            <p className="text-sm" style={{ color: '#7060a0' }}>{selected.length > 0 ? `${selected.length} selected` : 'Click to select'}</p>
+            <p className="text-sm" style={{ color: 'var(--text-faint)' }}>{selected.length > 0 ? `${selected.length} selected` : 'Click to select'}</p>
             <div className="flex gap-2">
-              <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: '#9080a8' }}>Cancel</button>
+              <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
               <button disabled={!selected.length || loading} onClick={() => onEnroll(selected)}
                 className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
                 style={{ background: 'rgba(100,150,220,0.2)', color: '#6496dc', border: '1px solid rgba(100,150,220,0.3)' }}>
@@ -211,7 +211,7 @@ export default function OrgAdminCohortDetail() {
     <div className="p-6 max-w-5xl mx-auto space-y-6 page-enter">
       <button onClick={() => navigate('/org-admin/cohorts')}
         className="flex items-center gap-2 text-sm transition-colors"
-        style={{ color: '#7060a0' }}
+        style={{ color: 'var(--text-faint)' }}
         onMouseEnter={e => e.currentTarget.style.color = '#e8e0f0'}
         onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
         <ArrowLeft size={16} /> Back to Cohorts
@@ -222,8 +222,8 @@ export default function OrgAdminCohortDetail() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <p className="text-xs font-mono mb-1" style={{ color: '#aa78a6' }}>{cohort?.cohort_code}</p>
-            <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>{cohort?.name}</h1>
-            <p className="mt-1 text-sm" style={{ color: '#7060a0' }}>{cohort?.organizations?.display_name}</p>
+            <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>{cohort?.name}</h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-faint)' }}>{cohort?.organizations?.display_name}</p>
           </div>
           <span className="text-sm px-3 py-1.5 rounded-full font-medium capitalize"
             style={{ background: 'rgba(170,120,166,0.1)', border: '1px solid rgba(170,120,166,0.2)', color: STATUS_STYLES[cohort?.status]?.color || '#aa78a6' }}>
@@ -239,10 +239,10 @@ export default function OrgAdminCohortDetail() {
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="rounded-xl p-3" style={{ background: 'rgba(170,120,166,0.05)', border: '1px solid rgba(170,120,166,0.12)' }}>
               <div className="flex items-center gap-1.5 mb-1">
-                <Icon size={13} style={{ color: '#7060a0' }} />
-                <p className="text-xs uppercase tracking-wider" style={{ color: '#7060a0' }}>{label}</p>
+                <Icon size={13} style={{ color: 'var(--text-faint)' }} />
+                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{label}</p>
               </div>
-              <p className="font-semibold" style={{ color: '#f0e8fc' }}>{value}</p>
+              <p className="font-semibold" style={{ color: 'var(--text-heading)' }}>{value}</p>
             </div>
           ))}
         </div>
@@ -266,7 +266,7 @@ export default function OrgAdminCohortDetail() {
       {/* Overview Tab */}
       {tab === 'Overview' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 space-y-4">
-          <h2 className="font-semibold" style={{ color: '#f0e8fc' }}>Program Details</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--text-heading)' }}>Program Details</h2>
           <div className="grid gap-3">
             {[
               { label: 'Program Type', value: cohort?.program_type?.replace(/_/g, ' ') },
@@ -276,7 +276,7 @@ export default function OrgAdminCohortDetail() {
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between py-2.5 px-3 rounded-lg"
                 style={{ background: 'rgba(170,120,166,0.04)', border: '1px solid rgba(170,120,166,0.08)' }}>
-                <span className="text-sm" style={{ color: '#7060a0' }}>{label}</span>
+                <span className="text-sm" style={{ color: 'var(--text-faint)' }}>{label}</span>
                 <span className="text-sm font-medium capitalize" style={{ color: '#e0d8f0' }}>{value}</span>
               </div>
             ))}
@@ -289,9 +289,9 @@ export default function OrgAdminCohortDetail() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6">
           <div className="flex items-center gap-3 mb-4">
             <Users size={18} style={{ color: '#aa78a6' }} />
-            <h2 className="font-semibold flex-1" style={{ color: '#f0e8fc' }}>
+            <h2 className="font-semibold flex-1" style={{ color: 'var(--text-heading)' }}>
               Enrolled Participants
-              <span className="ml-2 text-sm font-normal" style={{ color: '#7060a0' }}>({participants.length})</span>
+              <span className="ml-2 text-sm font-normal" style={{ color: 'var(--text-faint)' }}>({participants.length})</span>
             </h2>
             <button onClick={() => { setShowEnrollModal(true); setEnrollError(''); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
@@ -311,7 +311,7 @@ export default function OrgAdminCohortDetail() {
               <p className="text-sm">Failed to load participants. Please restart the server and refresh.</p>
             </div>
           ) : participants.length === 0 ? (
-            <div className="text-center py-10" style={{ color: '#7060a0' }}>
+            <div className="text-center py-10" style={{ color: 'var(--text-faint)' }}>
               <Users size={32} className="mx-auto mb-2 opacity-30" />
               <p>No participants enrolled yet.</p>
               <p className="text-xs mt-1">Click "Enroll Participants" to add people to this cohort.</p>
@@ -326,8 +326,8 @@ export default function OrgAdminCohortDetail() {
                     {p.users?.name?.[0] || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: '#f0e8fc' }}>{p.users?.name}</p>
-                    <p className="text-xs" style={{ color: '#7060a0' }}>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{p.users?.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
                       {p.users?.email}
                       {p.users?.designation ? ` · ${p.users.designation}` : ''}
                       {p.users?.department ? ` · ${p.users.department}` : ''}
@@ -339,7 +339,7 @@ export default function OrgAdminCohortDetail() {
                   </span>
                   <button
                     onClick={() => { if (confirm(`Remove ${p.users?.name} from this cohort?`)) removeEnrollMutation.mutate(p.id); }}
-                    className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: '#9080a8' }}
+                    className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: 'var(--text-muted)' }}
                     onMouseEnter={ev => { ev.currentTarget.style.color = '#e05065'; ev.currentTarget.style.background = 'rgba(224,80,101,0.1)'; }}
                     onMouseLeave={ev => { ev.currentTarget.style.color = '#9080a8'; ev.currentTarget.style.background = ''; }}>
                     <Trash2 size={14} />
@@ -369,7 +369,7 @@ export default function OrgAdminCohortDetail() {
       {tab === 'Assessments' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           <div className="glass-card p-4 flex items-center justify-between">
-            <h2 className="font-semibold" style={{ color: '#f0e8fc' }}>Assigned Assessments</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--text-heading)' }}>Assigned Assessments</h2>
             <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(170,120,166,0.1)', color: '#aa78a6' }}>
               {assessmentsData.length} assigned
             </span>
@@ -381,7 +381,7 @@ export default function OrgAdminCohortDetail() {
           ) : !assessmentsData.length ? (
             <div className="glass-card p-12 text-center">
               <Brain size={36} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-              <p style={{ color: '#7060a0' }}>No assessments assigned to this cohort yet.</p>
+              <p style={{ color: 'var(--text-faint)' }}>No assessments assigned to this cohort yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -403,8 +403,8 @@ export default function OrgAdminCohortDetail() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div>
-                          <h3 className="font-medium text-sm" style={{ color: '#f0e8fc' }}>{a.title}</h3>
-                          {a.description && <p className="text-xs mt-0.5 line-clamp-1" style={{ color: '#7060a0' }}>{a.description}</p>}
+                          <h3 className="font-medium text-sm" style={{ color: 'var(--text-heading)' }}>{a.title}</h3>
+                          {a.description && <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--text-faint)' }}>{a.description}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -436,7 +436,7 @@ export default function OrgAdminCohortDetail() {
       {tab === 'Content' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           <div className="glass-card p-4 flex items-center justify-between">
-            <h2 className="font-semibold" style={{ color: '#f0e8fc' }}>Assigned Content</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--text-heading)' }}>Assigned Content</h2>
             <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(170,120,166,0.1)', color: '#aa78a6' }}>
               {contentData.length} items
             </span>
@@ -448,7 +448,7 @@ export default function OrgAdminCohortDetail() {
           ) : !contentData.length ? (
             <div className="glass-card p-12 text-center">
               <BookOpen size={36} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-              <p style={{ color: '#7060a0' }}>No content assigned to this cohort yet.</p>
+              <p style={{ color: 'var(--text-faint)' }}>No content assigned to this cohort yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -463,7 +463,7 @@ export default function OrgAdminCohortDetail() {
                     className="glass-card p-4 flex items-center gap-4"
                     style={{ border: '1px solid rgba(170,120,166,0.1)' }}>
                     <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold"
-                      style={{ background: 'rgba(170,120,166,0.1)', color: '#7060a0' }}>
+                      style={{ background: 'rgba(170,120,166,0.1)', color: 'var(--text-faint)' }}>
                       {i + 1}
                     </div>
                     <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center"
@@ -471,7 +471,7 @@ export default function OrgAdminCohortDetail() {
                       <Icon size={14} style={{ color: t.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm" style={{ color: '#f0e8fc' }}>{c.title}</h3>
+                      <h3 className="font-medium text-sm" style={{ color: 'var(--text-heading)' }}>{c.title}</h3>
                       <div className="flex items-center gap-3 mt-0.5 text-xs" style={{ color: '#6a5880' }}>
                         <span style={{ color: t.color }}>{t.label}</span>
                         {ca.module_name && ca.module_name !== 'General' && <span>{ca.module_name}</span>}
@@ -487,7 +487,7 @@ export default function OrgAdminCohortDetail() {
                     {(c.external_url || c.file_url) && (
                       <a href={c.external_url || c.file_url} target="_blank" rel="noreferrer"
                         className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
-                        style={{ color: '#7060a0' }}
+                        style={{ color: 'var(--text-faint)' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
                         onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
                         <ExternalLink size={14} />
@@ -511,13 +511,13 @@ export default function OrgAdminCohortDetail() {
           ) : !journey?.interventions?.length ? (
             <div className="glass-card p-12 text-center">
               <Layers size={40} className="mx-auto mb-3" style={{ color: '#3e2860' }} />
-              <p style={{ color: '#7060a0' }}>The learning journey has not been configured yet.</p>
+              <p style={{ color: 'var(--text-faint)' }}>The learning journey has not been configured yet.</p>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="glass-card p-4 mb-4">
-                <h2 className="font-semibold" style={{ color: '#f0e8fc' }}>{journey.name}</h2>
-                {journey.description && <p className="text-sm mt-1" style={{ color: '#7060a0' }}>{journey.description}</p>}
+                <h2 className="font-semibold" style={{ color: 'var(--text-heading)' }}>{journey.name}</h2>
+                {journey.description && <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>{journey.description}</p>}
               </div>
               {journey.interventions.map((iv, i) => {
                 const Icon = INTERVENTION_ICONS[iv.intervention_type] || MapPin;
@@ -531,27 +531,27 @@ export default function OrgAdminCohortDetail() {
                         style={{ background: style.bg, border: `1px solid ${style.border}` }}>
                         <Icon size={17} style={{ color: style.color }} />
                       </div>
-                      <span className="text-xs font-bold" style={{ color: '#5a4870' }}>{i + 1}</span>
+                      <span className="text-xs font-bold" style={{ color: 'var(--text-ghost)' }}>{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div>
-                          <h3 className="font-medium" style={{ color: '#f0e8fc' }}>{iv.title}</h3>
+                          <h3 className="font-medium" style={{ color: 'var(--text-heading)' }}>{iv.title}</h3>
                           <span className="text-xs capitalize" style={{ color: style.color }}>
                             {iv.intervention_type.replace(/_/g, ' ')}
                           </span>
                         </div>
                         {iv.scheduled_date && (
-                          <div className="flex items-center gap-1.5 text-xs flex-shrink-0" style={{ color: '#7060a0' }}>
+                          <div className="flex items-center gap-1.5 text-xs flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
                             <Calendar size={12} />
                             {format(parseISO(iv.scheduled_date), 'MMM d, yyyy')}
                             {iv.scheduled_time && ` · ${iv.scheduled_time.slice(0, 5)}`}
                           </div>
                         )}
                       </div>
-                      {iv.description && <p className="text-sm mt-2" style={{ color: '#9080a8' }}>{iv.description}</p>}
+                      {iv.description && <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>{iv.description}</p>}
                       {iv.duration_minutes && (
-                        <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: '#7060a0' }}>
+                        <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
                           <Clock size={11} /> {iv.duration_minutes} min
                         </div>
                       )}

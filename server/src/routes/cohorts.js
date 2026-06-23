@@ -242,9 +242,48 @@ router.post('/:id/assessments', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_AD
   } catch (err) { next(err); }
 });
 
+// ── PATCH /cohorts/:id/assessments/:assignId ────────────────────────────────
+router.patch('/:id/assessments/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { assignId } = req.params;
+    const allowed = ['is_public', 'mandatory', 'access_open', 'access_close'];
+    const updates = {};
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+    const { data, error } = await supabase.from('assessment_assignments').update(updates).eq('id', assignId).select().single();
+    if (error) throw error;
+    res.json({ data });
+  } catch (err) { next(err); }
+});
+
 router.delete('/:id/assessments/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
   try {
     const { assignId } = req.params;
+    const force = req.query.force === 'true';
+
+    const { count, error: cErr } = await supabase
+      .from('assessment_responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('assignment_id', assignId);
+    if (cErr) throw cErr;
+
+    if (count > 0 && !force) {
+      return res.status(409).json({
+        error: {
+          code: 'HAS_RESPONSES',
+          message: `This assessment has ${count} participant response${count !== 1 ? 's' : ''}. Deleting it will permanently remove all response data.`,
+          count,
+        },
+      });
+    }
+
+    if (count > 0 && force) {
+      const { error: rErr } = await supabase
+        .from('assessment_responses')
+        .delete()
+        .eq('assignment_id', assignId);
+      if (rErr) throw rErr;
+    }
+
     const { error } = await supabase.from('assessment_assignments').delete().eq('id', assignId);
     if (error) throw error;
     res.json({ success: true });
@@ -337,6 +376,19 @@ router.post('/:id/content', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN)
     }).select().single();
     if (error) throw error;
     res.status(201).json({ data });
+  } catch (err) { next(err); }
+});
+
+// ── PATCH /cohorts/:id/content/:assignId ────────────────────────────────────
+router.patch('/:id/content/:assignId', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN), async (req, res, next) => {
+  try {
+    const { assignId } = req.params;
+    const allowed = ['is_public', 'mandatory', 'visibility_status', 'release_at', 'access_until', 'module_name', 'sequence_order'];
+    const updates = {};
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+    const { data, error } = await supabase.from('content_assignments').update(updates).eq('id', assignId).select().single();
+    if (error) throw error;
+    res.json({ data });
   } catch (err) { next(err); }
 });
 

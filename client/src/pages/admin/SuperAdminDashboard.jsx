@@ -81,10 +81,10 @@ function KpiCard({ title, value, subtitle, icon: Icon, color, orbColor, onClick,
       {loading ? (
         <div className="h-8 w-20 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
       ) : (
-        <p className="text-3xl font-bold text-white mb-1">{value ?? '—'}</p>
+        <p className="text-3xl font-bold text-[var(--text-heading)] mb-1">{value ?? '—'}</p>
       )}
-      <p className="text-sm font-medium text-slate-300">{title}</p>
-      {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+      <p className="text-sm font-medium text-[var(--text-secondary)]">{title}</p>
+      {subtitle && <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>}
     </motion.div>
   );
 }
@@ -106,8 +106,8 @@ function CohortHealthCard({ cohort, index }) {
           <div className="flex items-center gap-2 mb-1">
             <HealthBadge label={cohort.health_label || 'grey'} />
           </div>
-          <p className="font-semibold text-white text-sm truncate">{cohort.name}</p>
-          <p className="text-xs text-slate-500 truncate">{cohort.organizations?.display_name}</p>
+          <p className="font-semibold text-[var(--text-heading)] text-sm truncate">{cohort.name}</p>
+          <p className="text-xs text-[var(--text-muted)] truncate">{cohort.organizations?.display_name}</p>
         </div>
         <ChevronRight size={16} className="text-slate-600 flex-shrink-0 mt-1" />
       </div>
@@ -160,8 +160,8 @@ function ActivityItem({ log, index }) {
       className="flex items-start gap-3 py-3 last:border-0" style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
       <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-300">{log.action_type}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{log.entity_type} · {log.entity_id?.slice(0, 8)}…</p>
+        <p className="text-sm text-[var(--text-secondary)]">{log.action_type}</p>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5">{log.entity_type} · {log.entity_id?.slice(0, 8)}…</p>
       </div>
       <div className="flex-shrink-0 text-right">
         <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${meta.color}18`, color: meta.color }}>
@@ -212,8 +212,8 @@ export default function SuperAdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Platform Overview</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>Real-time view across all organizations and cohorts</p>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Platform Overview</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>Real-time view across all organizations and cohorts</p>
         </div>
         <button onClick={handleRefreshAll}
           className="btn-ghost flex items-center gap-2 text-sm">
@@ -236,9 +236,9 @@ export default function SuperAdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Activity size={18} className="text-brand-400" />
-              <h2 className="text-lg font-semibold text-white">Cohort Health Board</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-heading)]">Cohort Health Board</h2>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Critical</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> At risk</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> On track</span>
@@ -273,7 +273,7 @@ export default function SuperAdminDashboard() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Zap size={18} className="text-brand-400" />
-            <h2 className="text-lg font-semibold text-white">Activity Feed</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-heading)]">Activity Feed</h2>
           </div>
           <div className="glass-card p-4 max-h-[520px] overflow-y-auto">
             {activityLoading ? (
@@ -291,7 +291,7 @@ export default function SuperAdminDashboard() {
             ) : activityData?.data?.length === 0 ? (
               <div className="text-center py-8">
                 <Activity size={32} className="text-slate-700 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">No activity yet</p>
+                <p className="text-[var(--text-muted)] text-sm">No activity yet</p>
               </div>
             ) : (
               (activityData?.data || []).map((log, i) => (

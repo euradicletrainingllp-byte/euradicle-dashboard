@@ -147,7 +147,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs mt-4" style={{ color: '#5a4870' }}>ELOP v1.0 · Phase 1 MVP</p>
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--text-ghost)' }}>ELOP v1.0 · Phase 1 MVP</p>
       </motion.div>
     </div>
   );

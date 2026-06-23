@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO, isAfter } from 'date-fns';
 import api from '../../lib/api';
+import * as THREE from 'three';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -30,7 +31,7 @@ const INTERVENTION_STYLES = {
   group_activity:    { bg: 'rgba(100,200,180,0.1)', color: '#64c8b4', border: 'rgba(100,200,180,0.2)', label: 'Group Activity' },
   assessment_window: { bg: 'rgba(200,150,80,0.1)',  color: '#c89650', border: 'rgba(200,150,80,0.2)',  label: 'Assessment' },
   offline_session:   { bg: 'rgba(200,100,150,0.1)', color: '#c86496', border: 'rgba(200,100,150,0.2)', label: 'Offline Session' },
-  custom:            { bg: 'rgba(170,120,166,0.06)', color: '#9080a8', border: 'rgba(170,120,166,0.15)', label: 'Activity' },
+  custom:            { bg: 'rgba(170,120,166,0.06)', color: 'var(--text-muted)', border: 'rgba(170,120,166,0.15)', label: 'Activity' },
 };
 const SECTIONS = [
   { key: 'all',              label: 'Full Journey',     filter: null },
@@ -57,6 +58,150 @@ const CONTENT_TYPE_MAP = {
   reflection_prompt: { label: 'Reflection',   color: '#d0a030', bg: 'rgba(208,160,48,0.12)',  icon: BookOpen   },
 };
 
+
+// ── Three.js world background ─────────────────────────────────────────────────
+function useThreeScene(canvasRef) {
+  const scrollRef = useRef(0);
+  const mouseRef  = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const W = window.innerWidth, H = window.innerHeight;
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true, antialias: true });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x0e0c1a, 1);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0e0c1a, 0.03);
+
+    const camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 200);
+    camera.position.set(0, 2, 14);
+
+    // Lights
+    const ambient     = new THREE.AmbientLight(0x2a1840, 1.0);
+    const purpleLight = new THREE.PointLight(0xaa78a6, 2.5, 40);
+    const blueLight   = new THREE.PointLight(0x6040c0, 2.0, 35);
+    const goldLight   = new THREE.PointLight(0xc89650, 1.2, 25);
+    purpleLight.position.set(-8,  6,  4);
+    blueLight.position.set(10,  -2,  8);
+    goldLight.position.set(0,  12, -10);
+    scene.add(ambient, purpleLight, blueLight, goldLight);
+
+    // Stars
+    const starCount = 3000;
+    const starGeo   = new THREE.BufferGeometry();
+    const starPos   = new Float32Array(starCount * 3);
+    const starCols  = new Float32Array(starCount * 3);
+    const pal = [[0.67,0.47,0.65],[0.38,0.25,0.63],[0.78,0.72,0.88],[0.25,0.78,0.50],[0.39,0.59,0.86]];
+    for (let i = 0; i < starCount; i++) {
+      starPos[i*3]   = (Math.random()-0.5)*180;
+      starPos[i*3+1] = (Math.random()-0.5)*120;
+      starPos[i*3+2] = (Math.random()-0.5)*150;
+      const c = pal[Math.floor(Math.random()*pal.length)];
+      starCols[i*3]=c[0]; starCols[i*3+1]=c[1]; starCols[i*3+2]=c[2];
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color',    new THREE.BufferAttribute(starCols, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size:0.16, vertexColors:true, transparent:true, opacity:0.8, sizeAttenuation:true }));
+    scene.add(stars);
+
+    // Crystals
+    const crystalData = [];
+    const geos   = [new THREE.IcosahedronGeometry(1,0), new THREE.OctahedronGeometry(1,0), new THREE.TetrahedronGeometry(1,0)];
+    const colors = [0xaa78a6, 0x6040c0, 0xc8b8e0, 0x40c980, 0x6496dc, 0xc89650, 0x9060d0];
+    for (let i = 0; i < 22; i++) {
+      const geo   = geos[Math.floor(Math.random()*geos.length)].clone();
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      const scale = 0.25 + Math.random() * 1.4;
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color, transparent:true, opacity:0.12+Math.random()*0.18, shininess:120 })));
+      g.add(new THREE.Mesh(geo.clone(), new THREE.MeshBasicMaterial({ color, wireframe:true, transparent:true, opacity:0.4+Math.random()*0.3 })));
+      g.position.set((Math.random()-0.5)*24, (Math.random()-0.5)*16, -4-Math.random()*28);
+      g.scale.setScalar(scale);
+      g.userData = {
+        rx:(Math.random()-0.5)*0.005, ry:(Math.random()-0.5)*0.008, rz:(Math.random()-0.5)*0.004,
+        fa:0.008+Math.random()*0.01, fs:0.3+Math.random()*0.6, fo:Math.random()*Math.PI*2, oy:g.position.y,
+      };
+      scene.add(g); crystalData.push(g);
+    }
+
+    // Rings
+    const ringData = [];
+    for (let i = 0; i < 6; i++) {
+      const geo = new THREE.TorusGeometry(1.2+Math.random()*2, 0.04+Math.random()*0.07, 8, 64);
+      const r   = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:colors[i%colors.length], transparent:true, opacity:0.18+Math.random()*0.25 }));
+      r.position.set((Math.random()-0.5)*26,(Math.random()-0.5)*14,-8-Math.random()*22);
+      r.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+      r.userData = { rx:(Math.random()-0.5)*0.006, ry:(Math.random()-0.5)*0.005 };
+      scene.add(r); ringData.push(r);
+    }
+
+    // Grid
+    const grid = new THREE.Mesh(
+      new THREE.PlaneGeometry(120,120,50,50),
+      new THREE.MeshBasicMaterial({ color:0x4a2880, wireframe:true, transparent:true, opacity:0.05 })
+    );
+    grid.rotation.x = -Math.PI/2; grid.position.y = -10; scene.add(grid);
+
+    // Scroll waypoints
+    const WP = [
+      { p: new THREE.Vector3( 0,  2, 14), t: new THREE.Vector3( 0,  0,  0) },
+      { p: new THREE.Vector3(-2,  1, 10), t: new THREE.Vector3( 0,  1, -5) },
+      { p: new THREE.Vector3( 3, -1,  8), t: new THREE.Vector3(-2,  0, -8) },
+      { p: new THREE.Vector3(-2,  3,  6), t: new THREE.Vector3( 2, -1,-10) },
+      { p: new THREE.Vector3( 0,  0,  4), t: new THREE.Vector3( 0,  2,-15) },
+    ];
+    const camTarget = new THREE.Vector3();
+    let raf; const clock = new THREE.Clock(); let t = 0;
+
+    function animate() {
+      raf = requestAnimationFrame(animate);
+      const dt = clock.getDelta(); t += dt;
+      const sp = Math.min(scrollRef.current / Math.max(document.body.scrollHeight - window.innerHeight, 1), 1);
+      const wi = sp * (WP.length-1), wf = Math.floor(wi), wc = Math.min(wf+1,WP.length-1), wt = wi-wf;
+      const tp = WP[wf].p.clone().lerp(WP[wc].p, wt);
+      const tl = WP[wf].t.clone().lerp(WP[wc].t, wt);
+      tp.x += mouseRef.current.x*1.0; tp.y -= mouseRef.current.y*0.6;
+      tp.y += Math.sin(t*0.35)*0.12; tp.x += Math.cos(t*0.22)*0.08;
+      camera.position.lerp(tp, 0.025);
+      camTarget.lerp(tl, 0.025); camera.lookAt(camTarget);
+      crystalData.forEach(c => {
+        c.rotation.x += c.userData.rx; c.rotation.y += c.userData.ry; c.rotation.z += c.userData.rz;
+        c.position.y = c.userData.oy + Math.sin(t*c.userData.fs+c.userData.fo)*c.userData.fa*30;
+      });
+      ringData.forEach(r => { r.rotation.x += r.userData.rx; r.rotation.y += r.userData.ry; });
+      stars.rotation.y += 0.00007; stars.rotation.x += 0.00002;
+      purpleLight.intensity = 2.2 + Math.sin(t*0.7)*0.6;
+      blueLight.intensity   = 1.8 + Math.cos(t*0.5)*0.6;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    const onScroll = () => { scrollRef.current = window.scrollY; };
+    const onMouse  = (e) => {
+      mouseRef.current.x = (e.clientX/window.innerWidth  - 0.5)*2;
+      mouseRef.current.y = (e.clientY/window.innerHeight - 0.5)*2;
+    };
+    const onResize = () => {
+      const W=window.innerWidth,H=window.innerHeight;
+      camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+    };
+    window.addEventListener('scroll', onScroll);
+    window.addEventListener('mousemove', onMouse);
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('mousemove', onMouse);
+      window.removeEventListener('resize', onResize);
+      renderer.dispose();
+    };
+  }, [canvasRef]);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Journey: InterventionCard
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,9 +213,18 @@ function InterventionCard({ iv, index, onGoToAssessments }) {
   const isExpired = iv.access_until && isAfter(new Date(), new Date(iv.access_until));
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }}
-      className={`glass-card overflow-hidden transition-all duration-200 ${isLocked ? 'opacity-50' : ''}`}
-      style={{ border: expanded ? `1px solid ${style.border}` : undefined }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.07, duration: 0.55, ease: [0.16,1,0.3,1] }}
+      className={`overflow-hidden transition-all duration-300 ${isLocked ? 'opacity-50' : ''}`}
+      style={{
+        background: expanded ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.025)',
+        border: expanded ? `1px solid ${style.border}` : '1px solid rgba(170,120,166,0.1)',
+        borderRadius: '1rem',
+        backdropFilter: 'blur(12px)',
+        boxShadow: expanded ? `0 4px 30px ${style.color}15` : '0 1px 12px rgba(0,0,0,0.3)',
+      }}>
       <div className="p-4 flex items-start gap-4 cursor-pointer" onClick={() => !isLocked && setExpanded(e => !e)}>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ background: style.bg, border: `1px solid ${style.border}` }}>
@@ -87,21 +241,21 @@ function InterventionCard({ iv, index, onGoToAssessments }) {
                     style={{ background: 'rgba(200,150,80,0.1)', color: '#c89650', border: '1px solid rgba(200,150,80,0.2)' }}>Required</span>
                 )}
                 {isLocked && iv.release_at && (
-                  <span className="text-xs" style={{ color: '#5a4870' }}>Unlocks {format(new Date(iv.release_at), 'MMM d')}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>Unlocks {format(new Date(iv.release_at), 'MMM d')}</span>
                 )}
                 {isExpired && <span className="text-xs" style={{ color: '#e05065' }}>Expired</span>}
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               {iv.scheduled_date && (
-                <div className="hidden sm:flex items-center gap-1 text-xs" style={{ color: '#7060a0' }}>
+                <div className="hidden sm:flex items-center gap-1 text-xs" style={{ color: 'var(--text-faint)' }}>
                   <Calendar size={11} />{format(parseISO(iv.scheduled_date), 'MMM d')}{iv.scheduled_time ? `, ${iv.scheduled_time.slice(0,5)}` : ''}
                 </div>
               )}
               {iv.duration_minutes && (
-                <div className="hidden sm:flex items-center gap-1 text-xs" style={{ color: '#7060a0' }}><Clock size={11} />{iv.duration_minutes}m</div>
+                <div className="hidden sm:flex items-center gap-1 text-xs" style={{ color: 'var(--text-faint)' }}><Clock size={11} />{iv.duration_minutes}m</div>
               )}
-              {!isLocked && <span style={{ color: '#7060a0' }}>{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>}
+              {!isLocked && <span style={{ color: 'var(--text-faint)' }}>{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>}
             </div>
           </div>
         </div>
@@ -110,7 +264,7 @@ function InterventionCard({ iv, index, onGoToAssessments }) {
       {expanded && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }} className="px-4 pb-4 space-y-3">
-          {iv.description && <p className="text-sm" style={{ color: '#9080a8' }}>{iv.description}</p>}
+          {iv.description && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{iv.description}</p>}
 
           {/* Virtual Session: join link */}
           {iv.intervention_type === 'virtual_session' && iv.virtual_session_link && (
@@ -159,7 +313,7 @@ function InterventionCard({ iv, index, onGoToAssessments }) {
                 </p>
               </div>
               {iv.assessments?.description && (
-                <p className="text-xs" style={{ color: '#9080a8' }}>{iv.assessments.description}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{iv.assessments.description}</p>
               )}
               <button
                 onClick={onGoToAssessments}
@@ -179,8 +333,8 @@ function InterventionCard({ iv, index, onGoToAssessments }) {
                 <div className="flex items-center gap-3">
                   <BookOpen size={16} style={{ color: '#6496dc' }} />
                   <div>
-                    <p className="text-sm font-medium" style={{ color: '#f0e8fc' }}>{iv.content_items.title}</p>
-                    <p className="text-xs capitalize mt-0.5" style={{ color: '#7060a0' }}>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{iv.content_items.title}</p>
+                    <p className="text-xs capitalize mt-0.5" style={{ color: 'var(--text-faint)' }}>
                       {iv.content_items.content_type?.replace(/_/g,' ')}
                       {iv.content_items.estimated_minutes ? ` · ${iv.content_items.estimated_minutes} min` : ''}
                     </p>
@@ -227,7 +381,7 @@ function PageReader({ pages, onClose }) {
       <div className="flex items-center justify-between px-5 py-4"
         style={{ borderBottom: '1px solid rgba(170,120,166,0.1)' }}>
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
             <ChevronLeft size={18} />
@@ -239,9 +393,9 @@ function PageReader({ pages, onClose }) {
                 style={{ width: i === current ? '24px' : '8px', background: i === current ? '#aa78a6' : 'rgba(170,120,166,0.2)' }} />
             ))}
           </div>
-          <span className="text-xs" style={{ color: '#7060a0' }}>Page {current + 1} of {total}</span>
+          <span className="text-xs" style={{ color: 'var(--text-faint)' }}>Page {current + 1} of {total}</span>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#5a4870' }}
+        <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: 'var(--text-ghost)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
           onMouseLeave={e => e.currentTarget.style.color = '#5a4870'}>
           <X size={15} />
@@ -254,7 +408,7 @@ function PageReader({ pages, onClose }) {
           exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }}
           className="px-6 py-5 space-y-4" style={{ minHeight: '200px' }}>
           {pg.title && (
-            <h3 className="text-lg font-bold" style={{ color: '#f0e8fc' }}>{pg.title}</h3>
+            <h3 className="text-lg font-bold" style={{ color: 'var(--text-heading)' }}>{pg.title}</h3>
           )}
           {pg.body && (
             <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#c0b8d8' }}>
@@ -318,7 +472,7 @@ function ContentTab({ cohortId }) {
   if (!items.length) return (
     <div className="glass-card p-14 text-center">
       <BookOpen size={40} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-      <p style={{ color: '#7060a0' }}>No content has been assigned to this cohort yet.</p>
+      <p style={{ color: 'var(--text-faint)' }}>No content has been assigned to this cohort yet.</p>
     </div>
   );
 
@@ -336,18 +490,26 @@ function ContentTab({ cohortId }) {
 
         return (
           <React.Fragment key={item.id}>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className={`glass-card p-5 transition-all ${isLocked ? 'opacity-40' : ''}`}
-            style={{ border: `1px solid ${isDone ? 'rgba(64,201,128,0.2)' : isLocked ? 'rgba(170,120,166,0.06)' : 'rgba(170,120,166,0.12)'}` }}>
+          <motion.div
+            initial={{ opacity: 0, x: i % 2 === 0 ? -18 : 18, y: 10 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ delay: i * 0.06, duration: 0.55, ease: [0.16,1,0.3,1] }}
+            className={`p-5 transition-all ${isLocked ? 'opacity-40' : ''}`}
+            style={{
+              background: isDone ? 'rgba(64,201,128,0.04)' : 'rgba(255,255,255,0.025)',
+              border: `1px solid ${isDone ? 'rgba(64,201,128,0.2)' : isLocked ? 'rgba(90,72,112,0.15)' : 'rgba(170,120,166,0.12)'}`,
+              borderRadius: '1rem',
+              backdropFilter: 'blur(12px)',
+              boxShadow: isDone ? '0 2px 20px rgba(64,201,128,0.06)' : '0 1px 12px rgba(0,0,0,0.25)',
+            }}>
             <div className="flex items-start gap-4">
               {/* Level indicator */}
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{ background: isDone ? 'rgba(64,201,128,0.15)' : isLocked ? 'rgba(90,72,112,0.2)' : t.bg, border: `1px solid ${isDone ? 'rgba(64,201,128,0.3)' : isLocked ? 'rgba(90,72,112,0.2)' : t.color + '33'}` }}>
-                  {isDone ? <Check size={16} style={{ color: '#40c980' }} /> : isLocked ? <Lock size={15} style={{ color: '#5a4870' }} /> : <Icon size={16} style={{ color: t.color }} />}
+                  {isDone ? <Check size={16} style={{ color: '#40c980' }} /> : isLocked ? <Lock size={15} style={{ color: 'var(--text-ghost)' }} /> : <Icon size={16} style={{ color: t.color }} />}
                 </div>
-                <span className="text-xs font-bold" style={{ color: '#5a4870' }}>L{i + 1}</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--text-ghost)' }}>L{i + 1}</span>
               </div>
 
               <div className="flex-1 min-w-0">
@@ -363,16 +525,16 @@ function ContentTab({ cohortId }) {
                       )}
                       {item.module_name && item.module_name !== 'General' && (
                         <span className="text-xs px-2 py-0.5 rounded"
-                          style={{ background: 'rgba(170,120,166,0.08)', color: '#7060a0', border: '1px solid rgba(170,120,166,0.12)' }}>
+                          style={{ background: 'rgba(170,120,166,0.08)', color: 'var(--text-faint)', border: '1px solid rgba(170,120,166,0.12)' }}>
                           {item.module_name}
                         </span>
                       )}
                     </div>
                     {c.description && !isLocked && (
-                      <p className="text-xs mt-1.5 line-clamp-2" style={{ color: '#7060a0' }}>{c.description}</p>
+                      <p className="text-xs mt-1.5 line-clamp-2" style={{ color: 'var(--text-faint)' }}>{c.description}</p>
                     )}
                     {isLocked && i > 0 && (
-                      <p className="text-xs mt-1" style={{ color: '#5a4870' }}>Complete Level {i} to unlock</p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-ghost)' }}>Complete Level {i} to unlock</p>
                     )}
                   </div>
 
@@ -493,8 +655,8 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
         style={{ background: 'rgba(64,201,128,0.15)', border: '2px solid rgba(64,201,128,0.3)' }}>
         <CheckCircle size={28} style={{ color: '#40c980' }} />
       </div>
-      <h2 className="text-xl font-bold" style={{ color: '#f0e8fc' }}>Assessment Submitted!</h2>
-      <p style={{ color: '#7060a0' }}>Your responses have been recorded. Results will be shared by your facilitator.</p>
+      <h2 className="text-xl font-bold" style={{ color: 'var(--text-heading)' }}>Assessment Submitted!</h2>
+      <p style={{ color: 'var(--text-faint)' }}>Your responses have been recorded. Results will be shared by your facilitator.</p>
       <button onClick={onDone} className="btn-primary mt-2 flex items-center gap-2 mx-auto">
         <ArrowLeft size={15} /> Back to Assessments
       </button>
@@ -510,12 +672,12 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
       {/* Header */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-3">
-          <button onClick={onDone} className="p-1.5 rounded-lg" style={{ color: '#7060a0' }}
+          <button onClick={onDone} className="p-1.5 rounded-lg" style={{ color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
             onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><ArrowLeft size={18} /></button>
           <div className="flex-1">
-            <h2 className="font-bold" style={{ color: '#f0e8fc' }}>{assessment.title}</h2>
-            <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+            <h2 className="font-bold" style={{ color: 'var(--text-heading)' }}>{assessment.title}</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
               Section {currentSection + 1} of {totalSections}
             </p>
           </div>
@@ -542,16 +704,16 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
       <motion.div key={currentSection} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
         className="glass-card p-6 space-y-6">
         <div>
-          <h3 className="font-semibold text-base" style={{ color: '#f0e8fc' }}>{section.title}</h3>
+          <h3 className="font-semibold text-base" style={{ color: 'var(--text-heading)' }}>{section.title}</h3>
           {section.instructions && (
-            <p className="text-sm mt-1" style={{ color: '#7060a0' }}>{section.instructions}</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>{section.instructions}</p>
           )}
         </div>
 
         {questions.map((q, qi) => (
           <div key={q.id || qi} className="space-y-3">
             <p className="text-sm font-medium" style={{ color: '#e0d8f0' }}>
-              <span className="mr-2 text-xs font-bold" style={{ color: '#7060a0' }}>{qi + 1}.</span>
+              <span className="mr-2 text-xs font-bold" style={{ color: 'var(--text-faint)' }}>{qi + 1}.</span>
               {q.text}
             </p>
 
@@ -584,7 +746,7 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
                 placeholder="Type your response…"
                 rows={4}
                 className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}
               />
             )}
 
@@ -605,7 +767,7 @@ function AssessmentTaker({ assignment, responseId: initialRespId, onDone }) {
                   ))}
                 </div>
                 {(q.min_label || q.max_label) && (
-                  <div className="flex justify-between text-xs" style={{ color: '#5a4870' }}>
+                  <div className="flex justify-between text-xs" style={{ color: 'var(--text-ghost)' }}>
                     <span>{q.min_label || 'Low'}</span>
                     <span>{q.max_label || 'High'}</span>
                   </div>
@@ -714,7 +876,7 @@ function AssessmentsTab({ cohortId }) {
   if (!items.length) return (
     <div className="glass-card p-14 text-center">
       <Brain size={40} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-      <p style={{ color: '#7060a0' }}>No assessments have been assigned to this cohort yet.</p>
+      <p style={{ color: 'var(--text-faint)' }}>No assessments have been assigned to this cohort yet.</p>
     </div>
   );
 
@@ -762,10 +924,18 @@ function AssessmentsTab({ cohortId }) {
         }
 
         return (
-          <motion.div key={asg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="glass-card p-5"
-            style={{ border: '1px solid rgba(170,120,166,0.1)' }}>
+          <motion.div key={asg.id}
+            initial={{ opacity: 0, y: 14, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: i * 0.07, duration: 0.55, ease: [0.16,1,0.3,1] }}
+            className="p-5"
+            style={{
+              background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(170,120,166,0.12)',
+              borderRadius: '1rem',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.3)',
+            }}>
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
                 style={{ background: t.bg, border: `1px solid ${t.color}33` }}>
@@ -774,8 +944,8 @@ function AssessmentsTab({ cohortId }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-sm" style={{ color: '#f0e8fc' }}>{a.title}</h3>
-                    {a.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#7060a0' }}>{a.description}</p>}
+                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-heading)' }}>{a.title}</h3>
+                    {a.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-faint)' }}>{a.description}</p>}
                     <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs" style={{ color: '#6a5880' }}>
                       <span style={{ color: t.color }}>{t.label}</span>
                       <span>{(a.sections || []).length} sections · {totalQs} questions</span>
@@ -788,7 +958,7 @@ function AssessmentsTab({ cohortId }) {
                       )}
                     </div>
                     {asg.access_open && !hasOpened && (
-                      <p className="text-xs mt-1.5" style={{ color: '#5a4870' }}>
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--text-ghost)' }}>
                         Opens {format(new Date(asg.access_open), 'MMM d, yyyy HH:mm')}
                       </p>
                     )}
@@ -819,6 +989,8 @@ export default function ParticipantCohortPage() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('all');
   const [mainTab, setMainTab] = useState('Journey');
+  const canvasRef = useRef(null);
+  useThreeScene(canvasRef);
 
   const { data: cohort, isLoading: loadingCohort } = useQuery({
     queryKey: ['cohort', id],
@@ -842,30 +1014,43 @@ export default function ParticipantCohortPage() {
     : interventions;
 
   if (loadingCohort) return (
-    <div className="p-6 space-y-4">
-      <div className="h-8 w-64 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-40 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+    <div className="relative">
+      <canvas ref={canvasRef} style={{ position:'fixed',inset:0,width:'100%',height:'100%',zIndex:-1 }} />
+      <div className="p-6 space-y-4" style={{ position:'relative', zIndex:1 }}>
+        <div className="h-8 w-64 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-40 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      </div>
     </div>
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 page-enter">
+    <div style={{ position:'relative', minHeight:'100vh' }}>
+      {/* 3D world */}
+      <canvas ref={canvasRef} style={{ position:'fixed', inset:0, width:'100%', height:'100%', zIndex:-1 }} />
+      {/* radial glow */}
+      <div style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none',
+        background:'radial-gradient(ellipse 80% 55% at 50% 0%, rgba(96,64,160,0.14) 0%, transparent 65%)' }} />
+      {/* bottom fade */}
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, height:'160px', zIndex:0, pointerEvents:'none',
+        background:'linear-gradient(to top, rgba(14,12,26,0.85), transparent)' }} />
+
+    <div className="p-6 max-w-4xl mx-auto space-y-6 page-enter" style={{ position:'relative', zIndex:1 }}>
       <button onClick={() => navigate('/participant')}
         className="flex items-center gap-2 text-sm transition-colors"
-        style={{ color: '#7060a0' }}
+        style={{ color: 'var(--text-faint)' }}
         onMouseEnter={e => e.currentTarget.style.color = '#e8e0f0'}
         onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}>
         <ArrowLeft size={16} /> My Learning
       </button>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card overflow-hidden">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease:[0.16,1,0.3,1] }} className="overflow-hidden" style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(170,120,166,0.2)", borderRadius:"1rem", backdropFilter:"blur(20px)", boxShadow:"0 4px 40px rgba(96,64,160,0.15)" }}>
         <div className="h-2" style={{ background: 'linear-gradient(90deg, #aa78a6, #6496dc)' }} />
         <div className="p-6">
-          <p className="text-xs font-mono mb-1" style={{ color: '#7060a0' }}>{cohort?.cohort_code}</p>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>{cohort?.name}</h1>
-          <p className="mt-1 text-sm" style={{ color: '#9080a8' }}>{cohort?.organizations?.display_name}</p>
-          <div className="flex flex-wrap gap-4 mt-4 text-sm" style={{ color: '#7060a0' }}>
+          <p className="text-xs font-mono mb-1" style={{ color: 'var(--text-faint)' }}>{cohort?.cohort_code}</p>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>{cohort?.name}</h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>{cohort?.organizations?.display_name}</p>
+          <div className="flex flex-wrap gap-4 mt-4 text-sm" style={{ color: 'var(--text-faint)' }}>
             {cohort?.start_date && (
               <span className="flex items-center gap-1.5">
                 <Calendar size={13} />
@@ -880,7 +1065,7 @@ export default function ParticipantCohortPage() {
       </motion.div>
 
       {/* Main Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(170,120,166,0.1)' }}>
+      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(170,120,166,0.15)', backdropFilter:'blur(16px)', boxShadow:'0 2px 20px rgba(0,0,0,0.3)' }}>
         {['Journey', 'Content', 'Assessments'].map(t => (
           <button key={t} onClick={() => setMainTab(t)}
             className="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200"
@@ -901,7 +1086,7 @@ export default function ParticipantCohortPage() {
             <div className="flex gap-2 overflow-x-auto pb-1">
               {visibleSections.map(s => (
                 <button key={s.key} onClick={() => setActiveSection(s.key)}
-                  className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                  className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all" style={{ backdropFilter:'blur(8px)' }}
                   style={{
                     background: activeSection === s.key ? 'rgba(170,120,166,0.18)' : 'rgba(255,255,255,0.04)',
                     color: activeSection === s.key ? '#f0e8fc' : '#7060a0',
@@ -926,7 +1111,7 @@ export default function ParticipantCohortPage() {
           ) : filteredInterventions.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <BookOpen size={40} className="mx-auto mb-3" style={{ color: '#3e2860' }} />
-              <p style={{ color: '#7060a0' }}>
+              <p style={{ color: 'var(--text-faint)' }}>
                 {activeSection === 'all' ? 'Your learning journey will appear here once your facilitator sets it up.' : 'No activities in this section yet.'}
               </p>
             </div>
@@ -950,6 +1135,7 @@ export default function ParticipantCohortPage() {
 
       {/* Assessments Tab */}
       {mainTab === 'Assessments' && <AssessmentsTab cohortId={id} />}
+    </div>
     </div>
   );
 }

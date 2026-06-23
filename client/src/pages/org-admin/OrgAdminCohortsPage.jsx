@@ -37,22 +37,22 @@ export default function OrgAdminCohortsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 page-enter">
       <div>
-        <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>My Cohorts</h1>
-        <p className="mt-1 text-sm" style={{ color: '#7060a0' }}>All programs assigned to your organization.</p>
+        <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>My Cohorts</h1>
+        <p className="mt-1 text-sm" style={{ color: 'var(--text-faint)' }}>All programs assigned to your organization.</p>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#7060a0' }} />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-faint)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search cohorts…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.16)', color: '#f0e8fc' }} />
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.16)', color: 'var(--text-heading)' }} />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="px-3 py-2.5 rounded-xl text-sm outline-none"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.16)', color: '#f0e8fc' }}>
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.16)', color: 'var(--text-heading)' }}>
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="draft">Upcoming</option>
@@ -67,7 +67,7 @@ export default function OrgAdminCohortsPage() {
       ) : filtered.length === 0 ? (
         <div className="glass-card p-12 text-center">
           <GraduationCap size={40} className="mx-auto mb-3" style={{ color: '#3e2860' }} />
-          <p style={{ color: '#7060a0' }}>No cohorts found.</p>
+          <p style={{ color: 'var(--text-faint)' }}>No cohorts found.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -84,22 +84,22 @@ export default function OrgAdminCohortsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold" style={{ color: '#f0e8fc' }}>{cohort.name}</h3>
+                  <h3 className="font-semibold" style={{ color: 'var(--text-heading)' }}>{cohort.name}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize flex-shrink-0"
                     style={{ ...STATUS_STYLES[cohort.status] }}>
                     {cohort.status}
                   </span>
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>
                   {cohort.cohort_code} · {PROG_LABELS[cohort.program_type] || cohort.program_type}
                 </p>
               </div>
               <div className="hidden md:flex items-center gap-6 text-sm flex-shrink-0">
-                <div className="flex items-center gap-1.5" style={{ color: '#7060a0' }}>
+                <div className="flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}>
                   <Users size={13} />
                   <span>{cohort.enrollment_count} participants</span>
                 </div>
-                <div className="flex items-center gap-1.5" style={{ color: '#7060a0' }}>
+                <div className="flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}>
                   <Calendar size={13} />
                   <span>
                     {cohort.start_date ? format(new Date(cohort.start_date), 'MMM d, yyyy') : '—'}

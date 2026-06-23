@@ -62,7 +62,7 @@ function TagInput({ value = [], onChange, placeholder }) {
         onBlur={add}
         placeholder={value.length === 0 ? placeholder : ''}
         className="bg-transparent outline-none text-xs flex-1 min-w-[80px]"
-        style={{ color: '#f0e8fc' }} />
+        style={{ color: 'var(--text-heading)' }} />
     </div>
   );
 }
@@ -135,7 +135,7 @@ function ContentModal({ item, onClose }) {
         style={{ background: 'rgba(18,10,30,0.97)', border: '1px solid rgba(170,120,166,0.25)' }}>
 
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-white text-lg">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
+          <h2 className="font-bold text-[var(--text-heading)] text-lg">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#6a5880' }}
             onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
             onMouseLeave={e => e.currentTarget.style.color = '#6a5880'}><X size={18} /></button>
@@ -168,14 +168,14 @@ function ContentModal({ item, onClose }) {
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Title *</label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Content title…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
 
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Description</label>
             <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Brief description…" rows={2}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
 
           {needsBody && (
@@ -192,7 +192,7 @@ function ContentModal({ item, onClose }) {
                     style={{ background: usePages ? 'rgba(100,200,180,0.15)' : 'rgba(255,255,255,0.03)', color: usePages ? '#64c8b4' : '#6a5880', border: `1px solid ${usePages ? 'rgba(100,200,180,0.35)' : 'rgba(170,120,166,0.12)'}` }}>
                     <Columns size={12} /> Multi-Page
                   </button>
-                  {usePages && <span className="text-xs" style={{ color: '#5a4870' }}>Participants navigate pages in-platform</span>}
+                  {usePages && <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>Participants navigate pages in-platform</span>}
                 </div>
               )}
 
@@ -202,7 +202,7 @@ function ContentModal({ item, onClose }) {
                   <textarea value={body} onChange={e => setBody(e.target.value)}
                     placeholder="Article content, case study text, or reflection prompt…" rows={5}
                     className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -215,7 +215,7 @@ function ContentModal({ item, onClose }) {
                         <input value={pg.title} onChange={e => updatePage(idx, 'title', e.target.value)}
                           placeholder="Page title…"
                           className="flex-1 px-2 py-1 rounded-lg text-xs outline-none"
-                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: '#f0e8fc' }} />
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: 'var(--text-heading)' }} />
                         {pages.length > 1 && (
                           <button type="button" onClick={() => removePage(idx)}
                             className="p-1 rounded" style={{ color: '#e05065' }}>
@@ -226,7 +226,7 @@ function ContentModal({ item, onClose }) {
                       <textarea value={pg.body} onChange={e => updatePage(idx, 'body', e.target.value)}
                         placeholder="Page content…" rows={4}
                         className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: '#f0e8fc' }} />
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)', color: 'var(--text-heading)' }} />
                     </div>
                   ))}
                   <button type="button" onClick={addPage}
@@ -248,7 +248,7 @@ function ContentModal({ item, onClose }) {
               </label>
               <input value={extUrl} onChange={e => setExtUrl(e.target.value)} placeholder="https://…"
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
           )}
 
@@ -257,7 +257,7 @@ function ContentModal({ item, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>File URL</label>
               <input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://… (drive link, S3, etc.)"
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
           )}
 
@@ -265,13 +265,13 @@ function ContentModal({ item, onClose }) {
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Estimated Minutes</label>
             <input type="number" min="1" value={minutes} onChange={e => setMinutes(e.target.value)} placeholder="e.g. 15"
               className="w-32 px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
 
           {/* Tags collapsible */}
           <button type="button" onClick={() => setShowTags(v => !v)}
             className="flex items-center gap-2 text-xs font-semibold transition-colors"
-            style={{ color: '#7060a0' }}>
+            style={{ color: 'var(--text-faint)' }}>
             <Tag size={13} />
             {showTags ? 'Hide Tags' : 'Add Tags (Competency, Industry, Level, Program Type)'}
             {showTags ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -331,8 +331,8 @@ function DeleteModal({ item, onClose }) {
             style={{ background: 'rgba(224,80,101,0.12)' }}>
             <Trash2 size={20} style={{ color: '#e05065' }} />
           </div>
-          <h2 className="font-bold text-white">Delete Content?</h2>
-          <p className="text-sm" style={{ color: '#7060a0' }}>"{item.title}" will be removed from the library.</p>
+          <h2 className="font-bold text-[var(--text-heading)]">Delete Content?</h2>
+          <p className="text-sm" style={{ color: 'var(--text-faint)' }}>"{item.title}" will be removed from the library.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={onClose} className="btn-ghost flex-1 text-sm py-2.5">Cancel</button>
@@ -396,8 +396,8 @@ function AssignToCohortModal({ item, onClose }) {
         style={{ background: 'rgba(18,10,30,0.97)', border: '1px solid rgba(170,120,166,0.25)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-white text-lg">Assign to Cohort</h2>
-            <p className="text-xs mt-0.5 line-clamp-1" style={{ color: '#7060a0' }}>{item.title}</p>
+            <h2 className="font-bold text-[var(--text-heading)] text-lg">Assign to Cohort</h2>
+            <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--text-faint)' }}>{item.title}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#6a5880' }}
             onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
@@ -409,7 +409,7 @@ function AssignToCohortModal({ item, onClose }) {
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Cohort *</label>
             <select value={cohortId} onChange={e => setCohortId(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}>
               <option value="">Select active cohort…</option>
               {activeCohorts.map(c => (
                 <option key={c.id} value={c.id}>{c.name} ({c.cohort_code})</option>
@@ -421,7 +421,7 @@ function AssignToCohortModal({ item, onClose }) {
             <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Module Name</label>
             <input value={moduleName} onChange={e => setModuleName(e.target.value)} placeholder="e.g. Pre-Work, Module 1…"
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -429,13 +429,13 @@ function AssignToCohortModal({ item, onClose }) {
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Release At</label>
               <input type="datetime-local" value={releaseAt} onChange={e => setReleaseAt(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#c8a0c4' }}>Access Until</label>
               <input type="datetime-local" value={accessUntil} onChange={e => setAccessUntil(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }} />
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }} />
             </div>
           </div>
 
@@ -459,7 +459,7 @@ function AssignToCohortModal({ item, onClose }) {
               <label className="block text-xs font-semibold mb-1" style={{ color: '#c8a0c4' }}>Visibility</label>
               <select value={visStatus} onChange={e => setVisStatus(e.target.value)}
                 className="px-3 py-2 rounded-xl text-xs outline-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: '#f0e8fc' }}>
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.2)', color: 'var(--text-heading)' }}>
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
               </select>
@@ -514,8 +514,8 @@ function ContentCard({ item, onEdit, onDelete, onToggle, onAssign }) {
           <Icon size={16} style={{ color: t.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm" style={{ color: '#f0e8fc' }}>{item.title}</h3>
-          {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#7060a0' }}>{item.description}</p>}
+          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-heading)' }}>{item.title}</h3>
+          {item.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-faint)' }}>{item.description}</p>}
         </div>
       </div>
 
@@ -523,11 +523,11 @@ function ContentCard({ item, onEdit, onDelete, onToggle, onAssign }) {
         <div className="flex flex-wrap gap-1">
           {allTags.slice(0, 4).map(tag => (
             <span key={tag} className="text-xs px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(170,120,166,0.08)', color: '#7060a0', border: '1px solid rgba(170,120,166,0.12)' }}>
+              style={{ background: 'rgba(170,120,166,0.08)', color: 'var(--text-faint)', border: '1px solid rgba(170,120,166,0.12)' }}>
               {tag}
             </span>
           ))}
-          {allTags.length > 4 && <span className="text-xs" style={{ color: '#5a4870' }}>+{allTags.length - 4}</span>}
+          {allTags.length > 4 && <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>+{allTags.length - 4}</span>}
         </div>
       )}
 
@@ -553,12 +553,12 @@ function ContentCard({ item, onEdit, onDelete, onToggle, onAssign }) {
         </button>
         <button onClick={() => onEdit(item)}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-colors"
-          style={{ color: '#7060a0' }}
+          style={{ color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#c8a0c4'}
           onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><Edit2 size={14} /></button>
         <button onClick={() => onDelete(item)}
           className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-colors"
-          style={{ color: '#7060a0' }}
+          style={{ color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = '#e05065'}
           onMouseLeave={e => e.currentTarget.style.color = '#7060a0'}><Trash2 size={14} /></button>
       </div>
@@ -598,8 +598,8 @@ export default function ContentPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6 page-enter">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Content Library</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Content Library</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>
             {total} item{total !== 1 ? 's' : ''} · Re-usable, assignable to cohorts
           </p>
         </div>
@@ -628,10 +628,10 @@ export default function ContentPage() {
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="flex flex-col gap-3">
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl max-w-xs"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(170,120,166,0.15)' }}>
-          <Search size={14} style={{ color: '#7060a0' }} />
+          <Search size={14} style={{ color: 'var(--text-faint)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search content…"
-            className="bg-transparent outline-none text-sm flex-1" style={{ color: '#f0e8fc' }} />
-          {search && <button onClick={() => setSearch('')}><X size={12} style={{ color: '#7060a0' }} /></button>}
+            className="bg-transparent outline-none text-sm flex-1" style={{ color: 'var(--text-heading)' }} />
+          {search && <button onClick={() => setSearch('')}><X size={12} style={{ color: 'var(--text-faint)' }} /></button>}
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -670,7 +670,7 @@ export default function ContentPage() {
       ) : items.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-16 text-center">
           <BookOpen size={42} className="mx-auto mb-3 opacity-20" style={{ color: '#aa78a6' }} />
-          <p className="font-semibold" style={{ color: '#f0e8fc' }}>No content found</p>
+          <p className="font-semibold" style={{ color: 'var(--text-heading)' }}>No content found</p>
           <p className="text-sm mt-1" style={{ color: '#6a5880' }}>
             {search || typeFilter || statusFilter ? 'Try adjusting filters' : 'Add your first re-usable content item'}
           </p>

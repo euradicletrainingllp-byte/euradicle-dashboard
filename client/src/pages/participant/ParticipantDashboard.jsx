@@ -48,10 +48,10 @@ export default function ParticipantDashboard() {
             {user?.name?.[0] || 'P'}
           </div>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: '#f0e8fc' }}>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-heading)' }}>
               Welcome back, {user?.name?.split(' ')[0] || 'Learner'}!
             </h1>
-            <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>
               {user?.designation ? `${user.designation} · ` : ''}{user?.department || ''}
             </p>
           </div>
@@ -70,14 +70,14 @@ export default function ParticipantDashboard() {
       ) : active.length === 0 && others.length === 0 ? (
         <div className="glass-card p-16 text-center">
           <GraduationCap size={48} className="mx-auto mb-4" style={{ color: '#3e2860' }} />
-          <h2 className="text-lg font-semibold mb-2" style={{ color: '#f0e8fc' }}>No programs yet</h2>
-          <p style={{ color: '#7060a0' }}>You haven't been enrolled in any learning program yet.</p>
+          <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-heading)' }}>No programs yet</h2>
+          <p style={{ color: 'var(--text-faint)' }}>You haven't been enrolled in any learning program yet.</p>
         </div>
       ) : (
         <>
           {active.length > 0 && (
             <div>
-              <h2 className="text-base font-semibold mb-3 flex items-center gap-2" style={{ color: '#f0e8fc' }}>
+              <h2 className="text-base font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-heading)' }}>
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#64c878', boxShadow: '0 0 8px #64c87880' }} />
                 Active Programs
               </h2>
@@ -94,9 +94,9 @@ export default function ParticipantDashboard() {
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div>
-                          <p className="text-xs font-mono mb-1" style={{ color: '#7060a0' }}>{cohort.cohort_code}</p>
-                          <h3 className="font-semibold leading-tight" style={{ color: '#f0e8fc' }}>{cohort.name}</h3>
-                          <p className="text-xs mt-0.5" style={{ color: '#9080a8' }}>{cohort.organizations?.display_name}</p>
+                          <p className="text-xs font-mono mb-1" style={{ color: 'var(--text-faint)' }}>{cohort.cohort_code}</p>
+                          <h3 className="font-semibold leading-tight" style={{ color: 'var(--text-heading)' }}>{cohort.name}</h3>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{cohort.organizations?.display_name}</p>
                         </div>
                         <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium"
                           style={{ ...STATUS_STYLES.active }}>
@@ -104,7 +104,7 @@ export default function ParticipantDashboard() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs mb-4" style={{ color: '#7060a0' }}>
+                      <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'var(--text-faint)' }}>
                         <span className="px-2 py-0.5 rounded-md" style={{ background: 'rgba(170,120,166,0.08)' }}>
                           {PROG_LABELS[cohort.program_type] || cohort.program_type}
                         </span>
@@ -131,7 +131,7 @@ export default function ParticipantDashboard() {
 
           {others.length > 0 && (
             <div>
-              <h2 className="text-base font-semibold mb-3" style={{ color: '#7060a0' }}>Past Programs</h2>
+              <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--text-faint)' }}>Past Programs</h2>
               <div className="space-y-2">
                 {others.map(cohort => (
                   <div key={cohort.id}
@@ -139,10 +139,10 @@ export default function ParticipantDashboard() {
                     className="glass-card p-4 flex items-center gap-4 cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
                     onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(170,120,166,0.3)'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(170,120,166,0.16)'}>
-                    <GraduationCap size={18} className="flex-shrink-0" style={{ color: '#7060a0' }} />
+                    <GraduationCap size={18} className="flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
                     <div className="flex-1">
                       <p className="text-sm font-medium" style={{ color: '#e0d8f0' }}>{cohort.name}</p>
-                      <p className="text-xs" style={{ color: '#7060a0' }}>{PROG_LABELS[cohort.program_type]}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{PROG_LABELS[cohort.program_type]}</p>
                     </div>
                     <span className="text-xs px-2 py-0.5 rounded-full capitalize"
                       style={{ ...(STATUS_STYLES[cohort.status] || {}) }}>

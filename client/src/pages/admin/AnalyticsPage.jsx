@@ -50,12 +50,12 @@ function StatCard({ title, value, subtitle, icon: Icon, color = '#aa78a6', delay
           style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
           <Icon size={18} style={{ color }} />
         </div>
-        <p className="text-2xl font-bold" style={{ color: '#f0e8fc' }}>
+        <p className="text-2xl font-bold" style={{ color: 'var(--text-heading)' }}>
           {value ?? '—'}
         </p>
       </div>
       <p className="text-sm font-medium" style={{ color: '#e0d8f0' }}>{title}</p>
-      {subtitle && <p className="text-xs mt-0.5" style={{ color: '#7060a0' }}>{subtitle}</p>}
+      {subtitle && <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{subtitle}</p>}
     </motion.div>
   );
 }
@@ -66,7 +66,7 @@ function BreakdownBar({ label, value, total, color }) {
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
         <span style={{ color: '#c0b8d8' }} className="capitalize">{label}</span>
-        <span style={{ color: '#7060a0' }}>{value} <span style={{ color: '#4a3860' }}>({pct}%)</span></span>
+        <span style={{ color: 'var(--text-faint)' }}>{value} <span style={{ color: 'var(--text-ultra)' }}>({pct}%)</span></span>
       </div>
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(170,120,166,0.1)' }}>
         <motion.div
@@ -107,7 +107,7 @@ export default function AnalyticsPage() {
   if (error) return (
     <div className="p-6">
       <div className="glass-card p-12 text-center">
-        <BarChart2 size={40} className="mx-auto mb-3 opacity-30" style={{ color: '#7060a0' }} />
+        <BarChart2 size={40} className="mx-auto mb-3 opacity-30" style={{ color: 'var(--text-faint)' }} />
         <p className="text-sm" style={{ color: '#e05065' }}>Failed to load analytics. Please try again.</p>
         <button onClick={() => refetch()} className="btn-ghost mt-4 text-sm flex items-center gap-2 mx-auto">
           <RefreshCw size={14} /> Retry
@@ -128,8 +128,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-glow" style={{ color: '#f0e8fc' }}>Analytics</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#7060a0' }}>Operational and business metrics across the platform</p>
+          <h1 className="text-2xl font-bold text-glow" style={{ color: 'var(--text-heading)' }}>Analytics</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-faint)' }}>Operational and business metrics across the platform</p>
         </div>
         <button onClick={() => refetch()} disabled={isFetching}
           className="btn-ghost flex items-center gap-2 text-sm disabled:opacity-50">
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
 
       {/* ── Operational KPIs ── */}
       <section>
-        <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#5a4870' }}>
+        <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-ghost)' }}>
           Operational Metrics
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -162,14 +162,14 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <GraduationCap size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Cohorts by Status</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Cohorts by Status</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(cohorts?.by_status || {}).map(([status, count]) => (
               <BreakdownBar key={status} label={status} value={count} total={totalCohorts} color={STATUS_COLORS[status]} />
             ))}
             {Object.keys(cohorts?.by_status || {}).length === 0 && (
-              <p className="text-sm text-center py-4" style={{ color: '#4a3860' }}>No data</p>
+              <p className="text-sm text-center py-4" style={{ color: 'var(--text-ultra)' }}>No data</p>
             )}
           </div>
         </motion.div>
@@ -179,14 +179,14 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Award size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Cohorts by Program Type</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Cohorts by Program Type</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(cohorts?.by_program || {}).map(([type, count]) => (
               <BreakdownBar key={type} label={PROGRAM_LABELS[type] || type} value={count} total={totalCohorts} color="#aa78a6" />
             ))}
             {Object.keys(cohorts?.by_program || {}).length === 0 && (
-              <p className="text-sm text-center py-4" style={{ color: '#4a3860' }}>No data</p>
+              <p className="text-sm text-center py-4" style={{ color: 'var(--text-ultra)' }}>No data</p>
             )}
           </div>
         </motion.div>
@@ -196,14 +196,14 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <FileText size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Assessments by Type</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Assessments by Type</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(assessments?.by_type || {}).map(([type, count]) => (
               <BreakdownBar key={type} label={ASSESSMENT_TYPE_LABELS[type] || type} value={count} total={totalAssessments} color="#f59e0b" />
             ))}
             {Object.keys(assessments?.by_type || {}).length === 0 && (
-              <p className="text-sm text-center py-4" style={{ color: '#4a3860' }}>No data</p>
+              <p className="text-sm text-center py-4" style={{ color: 'var(--text-ultra)' }}>No data</p>
             )}
           </div>
         </motion.div>
@@ -213,14 +213,14 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <BookOpen size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Content by Type</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Content by Type</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(content?.by_type || {}).map(([type, count]) => (
               <BreakdownBar key={type} label={CONTENT_TYPE_LABELS[type] || type} value={count} total={totalContentItems} color="#60a5fa" />
             ))}
             {Object.keys(content?.by_type || {}).length === 0 && (
-              <p className="text-sm text-center py-4" style={{ color: '#4a3860' }}>No data</p>
+              <p className="text-sm text-center py-4" style={{ color: 'var(--text-ultra)' }}>No data</p>
             )}
           </div>
         </motion.div>
@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Target size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Enrollment Funnel</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Enrollment Funnel</h3>
           </div>
           <div className="space-y-4">
             {[
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
                 style={{ background: 'rgba(170,120,166,0.05)', border: '1px solid rgba(170,120,166,0.1)' }}>
-                <span className="text-sm" style={{ color: '#9080a8' }}>{row.label}</span>
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
                 <span className="text-lg font-bold" style={{ color: row.color }}>{row.value}</span>
               </div>
             ))}
@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Clock size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Library Health</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Library Health</h3>
           </div>
           <div className="space-y-3">
             {[
@@ -261,14 +261,14 @@ export default function AnalyticsPage() {
             ].map(row => (
               <div key={row.label}>
                 <BreakdownBar label={row.label} value={row.value} total={row.total || 1} color={row.color} />
-                <p className="text-xs mt-0.5 ml-0.5" style={{ color: '#4a3860' }}>
+                <p className="text-xs mt-0.5 ml-0.5" style={{ color: 'var(--text-ultra)' }}>
                   {row.value} of {row.total} published
                 </p>
               </div>
             ))}
             <div className="pt-2 flex items-center justify-between px-3 py-2 rounded-xl"
               style={{ background: 'rgba(170,120,166,0.05)', border: '1px solid rgba(170,120,166,0.1)' }}>
-              <span className="text-sm" style={{ color: '#9080a8' }}>Content Completion Rate</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Content Completion Rate</span>
               <span className="text-lg font-bold" style={{ color: content?.completion_rate_pct >= 60 ? '#40c980' : content?.completion_rate_pct >= 30 ? '#f59e0b' : '#e05065' }}>
                 {content?.completion_rate_pct ?? 0}%
               </span>
@@ -279,20 +279,20 @@ export default function AnalyticsPage() {
 
       {/* ── Business Metrics ── */}
       <section>
-        <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#5a4870' }}>
+        <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-ghost)' }}>
           Business Metrics — Organization Leaderboard
         </h2>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
           className="glass-card p-5">
           <div className="flex items-center gap-2 mb-5">
             <Building2 size={16} style={{ color: '#aa78a6' }} />
-            <h3 className="text-sm font-semibold" style={{ color: '#f0e8fc' }}>Top Organizations by Active Participants</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Top Organizations by Active Participants</h3>
             <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(170,120,166,0.15)', color: '#aa78a6' }}>
               {organizations?.total_active ?? 0} active orgs
             </span>
           </div>
           {!organizations?.leaderboard?.length ? (
-            <p className="text-sm text-center py-8" style={{ color: '#4a3860' }}>No organization data</p>
+            <p className="text-sm text-center py-8" style={{ color: 'var(--text-ultra)' }}>No organization data</p>
           ) : (
             <div className="space-y-2">
               {organizations.leaderboard.map((org, i) => (
@@ -304,12 +304,12 @@ export default function AnalyticsPage() {
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: '#f0e8fc' }}>{org.name}</p>
-                    <p className="text-xs" style={{ color: '#7060a0' }}>{org.cohorts} cohort{org.cohorts !== 1 ? 's' : ''}</p>
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-heading)' }}>{org.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{org.cohorts} cohort{org.cohorts !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-base font-bold" style={{ color: '#6496dc' }}>{org.activeParticipants}</p>
-                    <p className="text-xs" style={{ color: '#5a4870' }}>participants</p>
+                    <p className="text-xs" style={{ color: 'var(--text-ghost)' }}>participants</p>
                   </div>
                 </div>
               ))}

@@ -122,7 +122,7 @@ router.get('/:id/responses', authorize(ROLES.SUPER_ADMIN, ROLES.MINI_SUPER_ADMIN
       // Fetch responses (flat, no nested joins to avoid FK ambiguity on enrollments→users)
       const { data: r, error: rErr } = await supabase
         .from('assessment_responses')
-        .select('id, assignment_id, enrollment_id, status, total_score, auto_score, submitted_at, time_taken_seconds, attempt_number')
+        .select('id, assignment_id, enrollment_id, status, answers, total_score, auto_score, started_at, submitted_at, time_taken_seconds, attempt_number')
         .in('assignment_id', assignmentIds)
         .order('submitted_at', { ascending: false });
       if (rErr) throw rErr;

@@ -19,6 +19,7 @@ const adminRoutes = require('./routes/admin');
 const journeyRoutes = require('./routes/journeys');
 const participantRoutes = require('./routes/participant');
 const orgAdminRoutes = require('./routes/orgAdmin');
+const publicRoutes = require('./routes/public');
 
 const { errorHandler } = require('./middleware/errorHandler');
 
@@ -66,6 +67,9 @@ const apiLimiter = rateLimit({
 });
 
 // ── Routes ───────────────────────────────────────────────────────────────────
+// Public routes — no auth, no rate-limit (light endpoints only)
+app.use('/api/v1/public', publicRoutes);
+
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1', apiLimiter);
 app.use('/api/v1/users', userRoutes);

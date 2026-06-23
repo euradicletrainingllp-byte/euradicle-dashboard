@@ -121,6 +121,13 @@
     --chip-archived-border:   rgba(90, 80, 112, 0.20);
   }
 
+  /* ── Ensure native date/time pickers match the active theme ── */
+  [data-theme="light"] input,
+  [data-theme="light"] select,
+  [data-theme="light"] textarea {
+    color-scheme: light !important;
+  }
+
   * { box-sizing: border-box; }
 
   html { scroll-behavior: smooth; font-size: 14px; }
