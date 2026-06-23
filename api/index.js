@@ -177,6 +177,64 @@ module.exports = async function handler(req, res) {
     return json(res, 200, { success: true });
   }
 
+  // ── GET /api/v1/public/cohorts/:id — no auth required ─────────────────────
+  const publicCohortMatch = pathname.match(/^\/api\/v1\/public\/cohorts\/([^/]+)$/);
+  if (publicCohortMatch && method === 'GET') {
+    const cohortId = publicCohortMatch[1];
+    try {
+      const cRes = await sb('GET', `/rest/v1/cohorts?id=eq.${cohortId}&is_public=eq.true&deleted_at=is.null&select=id,name,cohort_code,program_type,status,start_date,end_date,description,is_public,org_id,organizations(id,name,display_name,logo_url)&limit=1`);
+      const cohort = (cRes.body || [])[0];
+      if (!cohort) return json(res, 404, { error: { code: 'NOT_FOUND', message: 'This cohort is not publicly available.' } });
+
+      // Journey
+      const journeyRes = await sb('GET', `/rest/v1/cohort_journeys?cohort_id=eq.${cohortId}&is_active=eq.true&select=id,name&limit=1`);
+      const journey = (journeyRes.body || [])[0] || null;
+      let interventions = [];
+      if (journey) {
+        const ivRes = await sb('GET', `/rest/v1/journey_interventions?journey_id=eq.${journey.id}&status=eq.published&order=sequence_order.asc&select=id,title,intervention_type,sequence_order,description,scheduled_date,scheduled_time,duration_minutes,location,is_mandatory,is_public`);
+        interventions = (ivRes.body || []).map(iv => ({
+          id: iv.id, title: iv.title, intervention_type: iv.intervention_type,
+          sequence_order: iv.sequence_order, scheduled_date: iv.scheduled_date,
+          scheduled_time: iv.scheduled_time, duration_minutes: iv.duration_minutes,
+          location: iv.location, is_mandatory: iv.is_mandatory, is_public: iv.is_public,
+          description: iv.is_public ? iv.description : null,
+        }));
+      }
+
+      // Content
+      const caRes = await sb('GET', `/rest/v1/content_assignments?cohort_id=eq.${cohortId}&visibility_status=eq.published&order=sequence_order.asc&select=id,sequence_order,is_public,content_items(id,title,content_type,estimated_minutes,description)`);
+      const content = (caRes.body || []).map(ca => ({
+        id: ca.id, sequence_order: ca.sequence_order, is_public: ca.is_public,
+        title: ca.content_items?.title || 'Untitled',
+        content_type: ca.content_items?.content_type,
+        estimated_minutes: ca.content_items?.estimated_minutes,
+        description: ca.is_public ? (ca.content_items?.description || null) : null,
+      }));
+
+      // Assessments
+      const aaRes = await sb('GET', `/rest/v1/assessment_assignments?cohort_id=eq.${cohortId}&select=id,is_public,assessments(id,title,assessment_type,timer_minutes,description)`);
+      const assessments = (aaRes.body || []).map(aa => ({
+        id: aa.id, is_public: aa.is_public,
+        title: aa.assessments?.title || 'Untitled',
+        assessment_type: aa.assessments?.assessment_type,
+        timer_minutes: aa.assessments?.timer_minutes,
+        description: aa.is_public ? (aa.assessments?.description || null) : null,
+      }));
+
+      return json(res, 200, {
+        data: {
+          id: cohort.id, name: cohort.name, cohort_code: cohort.cohort_code,
+          program_type: cohort.program_type, status: cohort.status,
+          start_date: cohort.start_date, end_date: cohort.end_date,
+          description: cohort.description || null,
+          organization: cohort.organizations,
+          journey: journey ? { id: journey.id, name: journey.name, interventions } : null,
+          content, assessments,
+        },
+      });
+    } catch (err) { return json(res, 500, { error: { message: err.message } }); }
+  }
+
   // ── Auth guard for all routes below ────────────────────────────────────────
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) return json(res, 401, { error: { code: 'UNAUTHORIZED', message: 'Login required' } });
